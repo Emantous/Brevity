@@ -28,10 +28,10 @@ Executable evidence was collected on Linux x86_64 using RTK release
 `dev-1.3.0-rc.642`, containing RTK binary `0.49.0`.
 
 The downloaded
-`rtk-x86_64-unknown-linux-musl.tar.gz` archive matched SHA-256:
+`rtk-oss-x86_64-unknown-linux-musl.tar.gz` archive matched SHA-256:
 
 ```text
-bfc0118a4950afb8a55fc73e06fbb8e83eeb26b87763c3b28d995b3bfae91894
+5dc4110f886e9b47e9380d3028d75ec266666bc70747f5aaf78572d8d2a48d71
 ```
 
 The archive checksum was checked against the release's `checksums.txt`.

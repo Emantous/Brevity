@@ -74,6 +74,11 @@ npm test
 - The extension is not published to the Marketplace.
 - The command and API surface may change during development.
 
+## Third-party notices
+
+RTK licensing and attribution details are recorded in
+[Third-party notices](docs/third-party-notices.md).
+
 ## License
 
 No license has been declared yet.

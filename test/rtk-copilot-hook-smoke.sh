@@ -3,7 +3,7 @@
 set -euo pipefail
 
 RTK_TAG="${RTK_TAG:-dev-1.3.0-rc.642}"
-RTK_ASSET="${RTK_ASSET:-rtk-x86_64-unknown-linux-musl.tar.gz}"
+RTK_ASSET="${RTK_ASSET:-rtk-oss-x86_64-unknown-linux-musl.tar.gz}"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
