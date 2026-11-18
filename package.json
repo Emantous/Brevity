@@ -27,6 +27,10 @@
         "title": "Brevity: Show RTK Runtime Status"
       },
       {
+        "command": "brevity.rtkEnable",
+        "title": "Brevity: Enable RTK"
+      },
+      {
         "command": "brevity.rtkRetry",
         "title": "Brevity: Retry RTK Runtime Setup"
       },

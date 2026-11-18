@@ -30,7 +30,9 @@ Check the lower-right status bar for:
 - `Brevity: Off`
 
 Open **Command Palette** and run **Brevity: Show RTK Runtime Status** for
-details.
+details including runtime integrity, hook registration, supported command
+families, and local aggregate metrics. Use **Brevity: Enable RTK** to
+reinitialize the feature after it has been disabled.
 
 ## Supported command scope
 
@@ -71,6 +73,7 @@ The bypass is also useful if a filtered result appears incomplete.
 | Command | Purpose |
 | --- | --- |
 | Brevity: Show RTK Runtime Status | Show runtime and hook status |
+| Brevity: Enable RTK | Enable Brevity and reinitialize RTK |
 | Brevity: Retry RTK Runtime Setup | Download or reinitialize RTK |
 | Brevity: Disable RTK and Remove Copilot Hook | Disable Brevity and remove its hook |
 | Brevity: Uninstall Managed RTK Runtime | Remove the hook and cached runtime |

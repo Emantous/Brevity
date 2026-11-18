@@ -33,7 +33,7 @@ function activate(context) {
 		output: (message) => output.appendLine(message),
 	});
 
-	let statusDisposable = vscode.commands.registerCommand('brevity.rtkStatus', async function () {
+	async function showRuntimeStatus() {
 		const status = await manager.status();
 		const hookManager = createHookManager(manager.executablePath);
 		const hookStatuses = await hookManager.status();
@@ -52,8 +52,20 @@ function activate(context) {
 				? `Hook installed: ${item.hookPath}`
 				: `Hook not installed: ${item.hookPath}`).join('\n');
 		vscode.window.showInformationMessage(
-			`${status.message}\n${hookMessage}\nSupported command families: ${supportedCount}\nMetrics: ${summarizeMetrics(readMetrics(metricsFilePath))}`,
+			`${status.message}\nRuntime source: managed RTK ${RTK_TAG}\nIntegrity: ${status.ready ? 'verified' : 'unknown'}\n${hookMessage}\nSupported command families: ${supportedCount}\nMetrics: ${summarizeMetrics(readMetrics(metricsFilePath))}`,
 		);
+	}
+
+	let statusDisposable = vscode.commands.registerCommand('brevity.rtkStatus', showRuntimeStatus);
+
+	const enableDisposable = vscode.commands.registerCommand('brevity.rtkEnable', async function () {
+		await vscode.workspace.getConfiguration('brevity').update(
+			'rtk.enabled',
+			true,
+			vscode.ConfigurationTarget.Global,
+		);
+		await prepareRuntime();
+		vscode.window.showInformationMessage('Brevity RTK is enabled.');
 	});
 
 	const metricsDisposable = vscode.commands.registerCommand('brevity.rtkMetrics', function () {
@@ -111,6 +123,7 @@ function activate(context) {
 	context.subscriptions.push(
 		helloDisposable,
 		statusDisposable,
+		enableDisposable,
 		metricsDisposable,
 		clearMetricsDisposable,
 		retryDisposable,

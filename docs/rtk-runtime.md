@@ -43,6 +43,7 @@ manifest.
 The runtime status and retry commands are:
 
 - `Brevity: Show RTK Runtime Status`
+- `Brevity: Enable RTK`
 - `Brevity: Retry RTK Runtime Setup`
 - `Brevity: Disable RTK and Remove Copilot Hook`
 - `Brevity: Uninstall Managed RTK Runtime`
