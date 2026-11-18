@@ -5,6 +5,11 @@
 The managed RTK runtime is controlled by `brevity.rtk.enabled`, defaulting to
 true. Release in stages:
 
+Tagged releases run the repository release workflow. The workflow installs
+locked dependencies, runs lint and unit tests, builds the VSIX, checks its
+contents, generates a SHA-256 checksum, and attaches both files to the GitHub
+release. Release in stages:
+
 Operational rollout uses the local `brevity.rtk.rolloutStage` label:
 `preview`, `staged`, or `general`. If a release must be stopped immediately,
 set `brevity.rtk.killSwitch` to true or run **Brevity: Emergency Disable RTK**.
