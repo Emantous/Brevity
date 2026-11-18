@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 const { RtkRuntimeManager } = require('./src/rtkRuntime');
+const { CopilotHookManager } = require('./src/copilotHookManager');
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -24,7 +25,14 @@ function activate(context) {
 
 	let statusDisposable = vscode.commands.registerCommand('brevity.rtkStatus', async function () {
 		const status = await manager.status();
-		vscode.window.showInformationMessage(status.message);
+		const hookManager = createHookManager(manager.executablePath);
+		const hookStatuses = await hookManager.status();
+		const hookMessage = hookStatuses.length === 0
+			? 'No workspace is open, so no project hook is registered.'
+			: hookStatuses.map((item) => item.installed
+				? `Hook installed: ${item.hookPath}`
+				: `Hook not installed: ${item.hookPath}`).join('\n');
+		vscode.window.showInformationMessage(`${status.message}\n${hookMessage}`);
 	});
 
 	let retryDisposable = vscode.commands.registerCommand('brevity.rtkRetry', async function () {
@@ -32,16 +40,65 @@ function activate(context) {
 			{ location: vscode.ProgressLocation.Notification, title: 'Brevity: preparing RTK' },
 			async () => {
 				const result = await manager.ensureRuntime();
+				if (result.ok) {
+					const hookManager = createHookManager(manager.executablePath);
+					await hookManager.install();
+				}
 				vscode.window.showInformationMessage(result.message);
 			},
 		);
 	});
 
-	context.subscriptions.push(helloDisposable, statusDisposable, retryDisposable, output);
+	const disableDisposable = vscode.commands.registerCommand('brevity.rtkDisable', async function () {
+		await vscode.workspace.getConfiguration('brevity').update(
+			'rtk.enabled',
+			false,
+			vscode.ConfigurationTarget.Global,
+		);
+		const hookManager = createHookManager(manager.executablePath);
+		await hookManager.uninstall();
+		vscode.window.showInformationMessage('Brevity RTK is disabled and its Copilot hook was removed.');
+	});
 
-	if (vscode.workspace.getConfiguration('brevity').get('rtk.enabled', true)) {
-		void manager.ensureRuntime();
+	context.subscriptions.push(
+		helloDisposable,
+		statusDisposable,
+		retryDisposable,
+		disableDisposable,
+		output,
+	);
+
+	function createHookManager(executablePath) {
+		return new CopilotHookManager({
+			workspaceFolders: vscode.workspace.workspaceFolders,
+			executablePath,
+			output: (message) => output.appendLine(message),
+		});
 	}
+
+	async function prepareRuntime() {
+		if (!vscode.workspace.getConfiguration('brevity').get('rtk.enabled', true)) {
+			return;
+		}
+		const result = await manager.ensureRuntime();
+		if (result.ok) {
+			await createHookManager(manager.executablePath).install();
+		}
+	}
+
+	const settingDisposable = vscode.workspace.onDidChangeConfiguration(async (event) => {
+		if (!event.affectsConfiguration('brevity.rtk.enabled')) {
+			return;
+		}
+		if (vscode.workspace.getConfiguration('brevity').get('rtk.enabled', true)) {
+			await prepareRuntime();
+		} else {
+			await createHookManager(manager.executablePath).uninstall();
+		}
+	});
+	context.subscriptions.push(settingDisposable);
+
+	void prepareRuntime();
 }
 
 // This method is called when your extension is deactivated

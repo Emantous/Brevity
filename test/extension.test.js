@@ -9,6 +9,15 @@ const {
 	sha256,
 	safeFileName,
 } = require('../src/rtkRuntime');
+const {
+	CopilotHookManager,
+	buildHookEntry,
+	isBrevityEntry,
+} = require('../src/copilotHookManager');
+const fs = require('fs');
+const fsPromises = fs.promises;
+const os = require('os');
+const path = require('path');
 // const myExtension = require('../extension');
 
 suite('Extension Test Suite', () => {
@@ -37,5 +46,55 @@ suite('Extension Test Suite', () => {
 		assert.throws(() => safeFileName('../rtk'), /Unsafe archive entry/);
 		assert.throws(() => safeFileName('/tmp/rtk'), /Unsafe archive entry/);
 		assert.strictEqual(safeFileName('./rtk'), 'rtk');
+	});
+
+	test('Copilot hook entry uses absolute RTK executable and fail-open shell guards', () => {
+		const entry = buildHookEntry('/opt/Brevity/rtk', 'linux');
+		assert.strictEqual(entry.cwd, '.');
+		assert.strictEqual(entry.timeoutSec, 5);
+		assert.ok(entry.bash.includes('/opt/Brevity/rtk'));
+		assert.ok(entry.bash.includes('BREVITY_RTK_HOOK_V1'));
+		assert.ok(isBrevityEntry(entry));
+	});
+
+	test('Copilot hook install and uninstall preserve unrelated entries', async () => {
+		const workspace = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'brevity-hook-test-'));
+		const executable = path.join(workspace, 'rtk');
+		await fsPromises.writeFile(executable, 'test');
+
+		const unrelated = {
+			type: 'command',
+			bash: 'echo keep-me',
+			powershell: 'Write-Output keep-me',
+			timeoutSec: 5,
+		};
+		const hookPath = path.join(workspace, '.github', 'hooks', 'rtk-rewrite.json');
+		await fsPromises.mkdir(path.dirname(hookPath), { recursive: true });
+		await fsPromises.writeFile(hookPath, JSON.stringify({
+			version: 1,
+			hooks: { PreToolUse: [unrelated] },
+		}));
+
+		const manager = new CopilotHookManager({
+			workspaceFolders: [workspace],
+			executablePath: executable,
+		});
+
+		await manager.install();
+		let config = JSON.parse(await fsPromises.readFile(hookPath, 'utf8'));
+		assert.strictEqual(config.hooks.PreToolUse.length, 2);
+		assert.ok(config.hooks.PreToolUse.some((entry) => isBrevityEntry(entry)));
+		assert.ok(config.hooks.PreToolUse.includes(unrelated) || config.hooks.PreToolUse.some((entry) => entry.bash === 'echo keep-me'));
+
+		await manager.install();
+		config = JSON.parse(await fsPromises.readFile(hookPath, 'utf8'));
+		assert.strictEqual(config.hooks.PreToolUse.filter(isBrevityEntry).length, 1);
+
+		await manager.uninstall();
+		config = JSON.parse(await fsPromises.readFile(hookPath, 'utf8'));
+		assert.strictEqual(config.hooks.PreToolUse.length, 1);
+		assert.strictEqual(config.hooks.PreToolUse[0].bash, 'echo keep-me');
+
+		await fsPromises.rm(workspace, { recursive: true, force: true });
 	});
 });

@@ -29,6 +29,10 @@
       {
         "command": "brevity.rtkRetry",
         "title": "Brevity: Retry RTK Runtime Setup"
+      },
+      {
+        "command": "brevity.rtkDisable",
+        "title": "Brevity: Disable RTK and Remove Copilot Hook"
       }
     ],
     "configuration": {

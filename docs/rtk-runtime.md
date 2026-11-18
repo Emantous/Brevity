@@ -44,6 +44,32 @@ The runtime status and retry commands are:
 
 - `Brevity: Show RTK Runtime Status`
 - `Brevity: Retry RTK Runtime Setup`
+- `Brevity: Disable RTK and Remove Copilot Hook`
+
+## Copilot hook integration
+
+After RTK is installed, Brevity creates:
+
+```text
+.github/hooks/rtk-rewrite.json
+```
+
+The hook points directly to the managed RTK executable. It does not rely on
+the user's PATH or a shell alias.
+
+For a multi-root VS Code workspace, Brevity writes the hook into each open
+workspace folder. In Remote-SSH, Dev Container, and WSL sessions, the hook is
+created by the extension in the remote workspace and uses the remote managed
+executable.
+
+The project-level JSON is parsed before changes are made. Brevity preserves
+unrelated hook entries and removes only entries carrying its
+`BREVITY_RTK_HOOK_V1` marker. Repeated enable or retry operations replace the
+existing Brevity entry rather than adding duplicates.
+
+Disabling the setting or running the disable command removes Brevity's entry.
+If no other hooks remain, Brevity removes the empty hook file. No unrelated
+Copilot configuration is deleted.
 
 ## Failure behavior
 
