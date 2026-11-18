@@ -10,6 +10,7 @@
   then checks representative VS Code and Copilot CLI hook payloads.
 - `npm run test:all` runs lint, unit tests, extension-host tests, and RTK
   smoke tests in sequence.
+- `npm run pilot` runs the local privacy-preserving Git output pilot.
 
 ## Fixtures
 
