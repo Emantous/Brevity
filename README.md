@@ -103,6 +103,12 @@ Copilot, and raw-output recovery steps.
 Release and rollback procedures are documented in
 [Release policy](docs/release-policy.md).
 
+Additional guides:
+
+- [User guide](docs/user-guide.md)
+- [Administrator guide](docs/administrator-guide.md)
+- [Contributor guide](docs/contributor-guide.md)
+
 ## Development
 
 ```bash
