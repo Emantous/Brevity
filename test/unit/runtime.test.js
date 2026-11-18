@@ -11,7 +11,7 @@ const {
 	safeFileName,
 	sha256,
 	isTrustedDownloadRedirect,
-} = require('../../src/rtkRuntime');
+} = require('../../src/tools/rtk/runtime');
 
 test('supported platform assets resolve to pinned hashes', () => {
 	for (const [platform, architecture] of [

@@ -1,14 +1,16 @@
 # Brevity
 
-Brevity reduces token-heavy command output for GitHub Copilot sessions by
-managing RTK automatically inside Visual Studio Code. Users do not need to
-install RTK, configure shell aliases, or edit Copilot hook files manually.
+Brevity is a token-reduction platform for GitHub Copilot sessions inside Visual
+Studio Code. It combines reusable reduction strategies with replaceable tools,
+so future implementations can be added without changing the user-facing
+enable, disable, status, retry, or uninstall lifecycle.
 
 ## Current status
 
-Brevity now manages a pinned RTK OSS runtime, writes a project Copilot hook,
-and applies a conservative command allowlist. It is under active development
-and is not yet published on the Visual Studio Code Marketplace.
+Brevity manages registered token-reduction tools, writes project integration
+hooks, and applies conservative command policies. RTK is currently the first
+registered command-output tool. It is under active development and is not yet
+published on the Visual Studio Code Marketplace.
 
 ## Installation and setup
 
@@ -16,7 +18,7 @@ After installing Brevity:
 
 1. Open a folder or workspace in VS Code.
 2. Start or open a GitHub Copilot Chat session.
-3. Brevity downloads and verifies RTK automatically after VS Code starts.
+3. Brevity prepares and verifies its registered tools automatically after VS Code starts.
 4. Brevity creates `.github/hooks/rtk-rewrite.json` only inside open
    workspace folders.
 
@@ -29,10 +31,9 @@ Check the lower-right status bar for:
 - `Brevity: No hook`
 - `Brevity: Off`
 
-Open **Command Palette** and run **Brevity: Show RTK Runtime Status** for
-details including runtime integrity, hook registration, supported command
-families, and local aggregate metrics. Use **Brevity: Enable RTK** to
-reinitialize the feature after it has been disabled.
+Open **Command Palette** and run **Brevity: Show Status** for runtime integrity,
+hook registration, supported command families, and local aggregate metrics.
+Use **Brevity: Enable** to reinitialize all enabled tools.
 
 ## Supported command scope
 
@@ -62,25 +63,25 @@ The bypass is also useful if a filtered result appears incomplete.
 
 ## Settings
 
-- `brevity.rtk.enabled` — enable or disable Brevity.
-- `brevity.rtk.killSwitch` — emergency disable that removes the Brevity hook.
-- `brevity.rtk.rolloutStage` — local rollout label: `preview`, `staged`, or
+- `brevity.enabled` — enable or disable Brevity.
+- `brevity.killSwitch` — emergency disable that removes Brevity hooks.
+- `brevity.rolloutStage` — local rollout label: `preview`, `staged`, or
   `general`.
-- `brevity.rtk.commands.allowlist` — command families Brevity may handle.
-- `brevity.rtk.commands.excludePatterns` — exact prefixes or regular expressions
+- `brevity.tools.commands.allowlist` — command families Brevity may handle.
+- `brevity.tools.commands.excludePatterns` — exact prefixes or regular expressions
   beginning with `^` that must remain unchanged.
-- `brevity.rtk.allowBypass` — show and preserve the raw-output bypass guidance.
+- `brevity.allowBypass` — show and preserve raw-output bypass guidance.
 
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| Brevity: Show RTK Runtime Status | Show runtime and hook status |
-| Brevity: Enable RTK | Enable Brevity and reinitialize RTK |
-| Brevity: Emergency Disable RTK | Immediately stop rewriting and remove the hook |
-| Brevity: Retry RTK Runtime Setup | Download or reinitialize RTK |
-| Brevity: Disable RTK and Remove Copilot Hook | Disable Brevity and remove its hook |
-| Brevity: Uninstall Managed RTK Runtime | Remove the hook and cached runtime |
+| Brevity: Show Status | Show tool and hook status |
+| Brevity: Enable | Enable Brevity and reinitialize tools |
+| Brevity: Emergency Disable | Immediately stop Brevity |
+| Brevity: Retry Tools | Prepare or reinitialize registered tools |
+| Brevity: Disable | Disable Brevity and remove its hooks |
+| Brevity: Uninstall | Remove hooks and managed tool data |
 
 ## Privacy and licensing
 
@@ -112,6 +113,7 @@ Additional guides:
 - [User guide](docs/user-guide.md)
 - [Administrator guide](docs/administrator-guide.md)
 - [Contributor guide](docs/contributor-guide.md)
+- [Tool and strategy development](docs/tool-development.md)
 - [Architecture contract](docs/architecture-contract.md)
 
 ## Development

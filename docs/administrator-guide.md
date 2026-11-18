@@ -10,11 +10,11 @@ pinned release source over HTTPS and verified before execution.
 
 Administrators can use VS Code settings or workspace policy to control:
 
-- `brevity.rtk.enabled`
-- `brevity.rtk.commands.allowlist`
-- `brevity.rtk.commands.excludePatterns`
-- `brevity.rtk.commands.overrides`
-- `brevity.rtk.allowBypass`
+- `brevity.enabled`
+- `brevity.tools.commands.allowlist`
+- `brevity.tools.commands.excludePatterns`
+- `brevity.tools.commands.overrides`
+- `brevity.allowBypass`
 
 The default policy is conservative. Unknown, shell-sensitive, destructive,
 privileged, secret-bearing, deployment, and mutation commands pass through

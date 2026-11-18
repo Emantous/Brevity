@@ -1,0 +1,190 @@
+#!/usr/bin/env node
+
+const { spawnSync } = require('child_process');
+const fs = require('fs');
+const { isBrevityAllowedCommand } = require('./policy');
+const { recordMetric } = require('./metrics');
+const { migratePolicy } = require('./migrations');
+
+function readPayload() {
+	return new Promise((resolve, reject) => {
+		let input = '';
+		process.stdin.setEncoding('utf8');
+		process.stdin.on('data', (chunk) => {
+			input += chunk;
+			if (input.length > 1_048_576) {
+				reject(new Error('Hook payload exceeds 1 MiB'));
+			}
+		});
+		process.stdin.on('end', () => resolve(input));
+		process.stdin.on('error', reject);
+	});
+}
+
+function getCommand(payload) {
+	const directInputs = [
+		payload.tool_input,
+		payload.toolInput,
+		payload.tool_args,
+		payload.toolArgs,
+		payload.ToolArgs,
+		payload.ToolInput,
+		payload.arguments,
+		payload.input,
+	];
+	for (const input of directInputs) {
+		if (input && typeof input === 'object' && typeof input.command === 'string') {
+			return input.command;
+		}
+	}
+
+	for (const input of directInputs) {
+		if (typeof input !== 'string') {
+			continue;
+		}
+		try {
+			const args = JSON.parse(input);
+			if (typeof args.command === 'string') {
+				return args.command;
+			}
+		} catch {
+			return null;
+		}
+	}
+	return null;
+}
+
+function sanitizedEnvironment(source = process.env) {
+	const keys = [
+		'HOME',
+		'USERPROFILE',
+		'SYSTEMROOT',
+		'COMSPEC',
+		'PATHEXT',
+		'TEMP',
+		'TMP',
+	];
+	const environment = {};
+	for (const key of keys) {
+		if (typeof source[key] === 'string') {
+			environment[key] = source[key];
+		}
+	}
+	return environment;
+}
+
+function isRewriteResponse(response) {
+	if (!response || typeof response !== 'object') {
+		return false;
+	}
+	const hookOutput = response.hookSpecificOutput || response.hook_specific_output;
+	const updatedInput = response.updatedInput ||
+		response.updated_input ||
+		(hookOutput && (hookOutput.updatedInput || hookOutput.updated_input));
+	const modifiedArgs = response.modifiedArgs || response.modified_args;
+	return Boolean(
+		updatedInput && typeof updatedInput.command === 'string' ||
+		modifiedArgs && typeof modifiedArgs.command === 'string',
+	);
+}
+
+function runRtkHookResult(rtkExecutable, input, spawn = spawnSync) {
+	const result = spawn(rtkExecutable, ['hook', 'copilot'], {
+		input,
+		encoding: 'utf8',
+		timeout: 5_000,
+		maxBuffer: 1_048_576,
+		env: sanitizedEnvironment(),
+	});
+
+	if (result.error || result.status !== 0 || typeof result.stdout !== 'string' || !result.stdout.trim()) {
+		return { output: '', reason: result.error || result.status !== 0 ? 'failure' : 'empty' };
+	}
+
+	try {
+		const response = JSON.parse(result.stdout);
+		return isRewriteResponse(response)
+			? { output: result.stdout, reason: 'rewritten', response }
+			: { output: '', reason: 'invalid' };
+	} catch {
+		return { output: '', reason: 'invalid' };
+	}
+}
+
+function runRtkHook(rtkExecutable, input, spawn = spawnSync) {
+	return runRtkHookResult(rtkExecutable, input, spawn).output;
+}
+
+async function main() {
+	const rtkExecutable = process.argv[2];
+	const policyFile = process.argv[3];
+	const metricsFilePath = process.argv[4];
+	if (!rtkExecutable) {
+		process.exit(0);
+	}
+
+	let policy = {};
+	if (policyFile) {
+		try {
+			policy = migratePolicy(JSON.parse(fs.readFileSync(policyFile, 'utf8')));
+		} catch {
+			policy = {};
+		}
+	}
+
+	const input = await readPayload();
+	if (!input.trim()) {
+		process.exit(0);
+	}
+
+	let payload;
+	try {
+		payload = JSON.parse(input);
+	} catch {
+		process.exit(0);
+	}
+
+	const command = getCommand(payload);
+	if (typeof command === 'string' && /^rtk\s+bypass(?:\s|$)/.test(command)) {
+		await recordMetric(metricsFilePath, 'bypasses');
+		process.exit(0);
+	}
+	if (!isBrevityAllowedCommand(command, {
+		allowlist: policy.allowlist,
+		excludePatterns: policy.excludePatterns,
+		commandOverrides: policy.commandOverrides,
+	})) {
+		process.exit(0);
+	}
+
+	const result = runRtkHookResult(rtkExecutable, input);
+	if (result.reason === 'rewritten') {
+		const hookOutput = result.response.hookSpecificOutput || result.response.hook_specific_output;
+		const updatedInput = result.response.updatedInput ||
+			result.response.updated_input ||
+			hookOutput?.updatedInput ||
+			hookOutput?.updated_input;
+		const modifiedArgs = result.response.modifiedArgs || result.response.modified_args;
+		const rewrittenCommand = updatedInput?.command || modifiedArgs?.command || '';
+		await recordMetric(metricsFilePath, 'rewrites', {
+			inputCharacters: command.length,
+			rewrittenCharacters: rewrittenCommand.length,
+		});
+	} else if (result.reason === 'failure' || result.reason === 'invalid') {
+		await recordMetric(metricsFilePath, 'failures');
+		await recordMetric(metricsFilePath, 'rawFallbacks');
+	}
+	process.stdout.write(result.output);
+}
+
+if (require.main === module) {
+	main().catch(() => process.exit(0));
+}
+
+module.exports = {
+	getCommand,
+	isRewriteResponse,
+	runRtkHook,
+	runRtkHookResult,
+	sanitizedEnvironment,
+};

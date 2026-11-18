@@ -23,58 +23,58 @@
         "title": "Hello World"
       },
       {
-        "command": "brevity.rtkStatus",
-        "title": "Brevity: Show RTK Runtime Status"
+        "command": "brevity.status",
+        "title": "Brevity: Show Status"
       },
       {
-        "command": "brevity.rtkEnable",
-        "title": "Brevity: Enable RTK"
+        "command": "brevity.enable",
+        "title": "Brevity: Enable"
       },
       {
-        "command": "brevity.rtkEmergencyDisable",
-        "title": "Brevity: Emergency Disable RTK"
+        "command": "brevity.emergencyDisable",
+        "title": "Brevity: Emergency Disable"
       },
       {
-        "command": "brevity.rtkRetry",
-        "title": "Brevity: Retry RTK Runtime Setup"
+        "command": "brevity.retry",
+        "title": "Brevity: Retry Tools"
       },
       {
-        "command": "brevity.rtkDisable",
-        "title": "Brevity: Disable RTK and Remove Copilot Hook"
+        "command": "brevity.disable",
+        "title": "Brevity: Disable"
       },
       {
-        "command": "brevity.rtkUninstall",
-        "title": "Brevity: Uninstall Managed RTK Runtime"
+        "command": "brevity.uninstall",
+        "title": "Brevity: Uninstall"
       },
       {
-        "command": "brevity.rtkMetrics",
+        "command": "brevity.metrics",
         "title": "Brevity: Show Local Metrics"
       },
       {
-        "command": "brevity.rtkClearMetrics",
+        "command": "brevity.clearMetrics",
         "title": "Brevity: Clear Local Metrics"
       }
     ],
     "configuration": {
       "title": "Brevity",
       "properties": {
-        "brevity.rtk.enabled": {
+        "brevity.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically manage the RTK runtime used for command output compression."
+          "description": "Automatically manage all enabled Brevity token-reduction tools."
         },
-        "brevity.rtk.killSwitch": {
+        "brevity.killSwitch": {
           "type": "boolean",
           "default": false,
           "description": "Emergency kill switch that disables rewriting and removes the Brevity hook."
         },
-        "brevity.rtk.rolloutStage": {
+        "brevity.rolloutStage": {
           "type": "string",
           "enum": ["preview", "staged", "general"],
           "default": "general",
           "description": "Local rollout stage label used for operational status and release checks."
         },
-        "brevity.rtk.commands.allowlist": {
+        "brevity.tools.commands.allowlist": {
           "type": "array",
           "items": { "type": "string" },
           "default": [
@@ -84,24 +84,24 @@
             ,"ls", "find", "grep", "rg", "du", "df", "stat", "file", "pwd", "tree",
             "curl", "wget"
           ],
-          "description": "Command families Brevity may rewrite through RTK."
+          "description": "Command families eligible for command-output reduction tools."
         },
-        "brevity.rtk.commands.excludePatterns": {
+        "brevity.tools.commands.excludePatterns": {
           "type": "array",
           "items": { "type": "string" },
           "default": [],
           "description": "Exact prefixes or regular expressions beginning with ^ that Brevity must not rewrite."
         },
-        "brevity.rtk.commands.overrides": {
+        "brevity.tools.commands.overrides": {
           "type": "object",
           "default": {},
           "additionalProperties": { "type": "boolean" },
           "description": "Per-command overrides such as {\"git diff\": true}; use only after measuring the command output."
         },
-        "brevity.rtk.allowBypass": {
+        "brevity.allowBypass": {
           "type": "boolean",
           "default": true,
-          "description": "Document and preserve the RTK bypass command for raw, uncompressed output."
+          "description": "Document and preserve raw-output bypass guidance for tools that support it."
         }
       }
     }

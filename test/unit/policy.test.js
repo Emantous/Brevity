@@ -7,12 +7,12 @@ const {
 	parseCommand,
 	stripEnvironmentPrefixes,
 	matchesPattern,
-} = require('../../src/copilotPolicy');
+} = require('../../src/core/policy');
 const {
 	getCommand,
 	isRewriteResponse,
 	runRtkHook,
-} = require('../../src/copilotHook');
+} = require('../../src/core/hook');
 
 test('Copilot payload fixtures produce command strings', async () => {
 	const fixturePath = path.join(__dirname, '..', 'fixtures', 'copilot-payloads.json');

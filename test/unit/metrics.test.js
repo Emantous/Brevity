@@ -9,7 +9,7 @@ const {
 	readMetrics,
 	recordMetric,
 	summarizeMetrics,
-} = require('../../src/metrics');
+} = require('../../src/core/metrics');
 
 test('local metrics aggregate counts without storing command content', async () => {
 	const directory = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'brevity-metrics-test-'));

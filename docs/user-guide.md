@@ -14,23 +14,23 @@ not need to install RTK, edit shell aliases, or create hook files manually.
 
 Use the Command Palette for:
 
-- **Brevity: Show RTK Runtime Status** - view runtime integrity, hook state,
+- **Brevity: Show Status** - view runtime integrity, hook state,
   supported command families, and local aggregate metrics.
-- **Brevity: Enable RTK** - enable the feature and repair its runtime setup.
-- **Brevity: Retry RTK Runtime Setup** - retry a failed runtime setup.
-- **Brevity: Disable RTK and Remove Copilot Hook** - stop rewriting and remove
+- **Brevity: Enable** - enable the feature and repair its runtime setup.
+- **Brevity: Retry Tools** - retry a failed runtime setup.
+- **Brevity: Disable** - stop rewriting and remove
   only Brevity-owned hook entries.
-- **Brevity: Uninstall Managed RTK Runtime** - remove the managed runtime and
+- **Brevity: Uninstall** - remove the managed runtime and
   Brevity-owned hooks.
 
 ## Settings
 
-- `brevity.rtk.enabled` controls whether rewriting is active.
-- `brevity.rtk.commands.allowlist` selects supported command families.
-- `brevity.rtk.commands.excludePatterns` prevents selected commands from being
+- `brevity.enabled` controls whether rewriting is active.
+- `brevity.tools.commands.allowlist` selects supported command families.
+- `brevity.tools.commands.excludePatterns` prevents selected commands from being
   rewritten.
-- `brevity.rtk.commands.overrides` enables individually measured Git filters.
-- `brevity.rtk.allowBypass` controls raw-output bypass guidance.
+- `brevity.tools.commands.overrides` enables individually measured Git filters.
+- `brevity.allowBypass` controls raw-output bypass guidance.
 
 ## Raw output and privacy
 

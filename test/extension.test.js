@@ -8,16 +8,16 @@ const {
 	parseChecksums,
 	sha256,
 	safeFileName,
-} = require('../src/rtkRuntime');
+} = require('../src/tools/rtk/runtime');
 const {
 	CopilotHookManager,
 	buildHookEntry,
 	isBrevityEntry,
-} = require('../src/copilotHookManager');
-const { isBrevityAllowedCommand } = require('../src/copilotPolicy');
-const { sanitizedEnvironment } = require('../src/copilotHook');
-const { PINNED_ARCHIVE_SHA256 } = require('../src/rtkRuntime');
-const { formatStatus, countSupportedCommands } = require('../src/uxStatus');
+} = require('../src/core/hookManager');
+const { isBrevityAllowedCommand } = require('../src/core/policy');
+const { sanitizedEnvironment } = require('../src/core/hook');
+const { PINNED_ARCHIVE_SHA256 } = require('../src/tools/rtk/runtime');
+const { formatStatus, countSupportedCommands } = require('../src/core/uxStatus');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const os = require('os');
@@ -56,7 +56,7 @@ suite('Extension Test Suite', () => {
 		const entry = buildHookEntry(
 			'/opt/Brevity/rtk',
 			process.execPath,
-			'/opt/Brevity/src/copilotHook.js',
+			'/opt/Brevity/src/core/hook.js',
 			'/opt/Brevity/policy.json',
 		);
 		assert.strictEqual(entry.cwd, '.');
@@ -178,7 +178,7 @@ suite('Extension Test Suite', () => {
 	});
 
 	test('RTK downloads require HTTPS and use immutable release hashes', async () => {
-		const { downloadUrl } = require('../src/rtkRuntime');
+		const { downloadUrl } = require('../src/tools/rtk/runtime');
 		await assert.rejects(() => downloadUrl('http://example.com/rtk'), /HTTPS/);
 		assert.strictEqual(
 			PINNED_ARCHIVE_SHA256['rtk-oss-x86_64-unknown-linux-musl.tar.gz'],

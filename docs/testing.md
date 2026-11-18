@@ -36,7 +36,7 @@ Code Mocha host.
 
 Press `F5`, open the Command Palette, and run:
 
-1. **Brevity: Retry RTK Runtime Setup**
-2. **Brevity: Show RTK Runtime Status**
-3. **Brevity: Disable RTK and Remove Copilot Hook**
-4. **Brevity: Uninstall Managed RTK Runtime**
+1. **Brevity: Retry Tools**
+2. **Brevity: Show Status**
+3. **Brevity: Disable**
+4. **Brevity: Uninstall**

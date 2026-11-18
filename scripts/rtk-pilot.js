@@ -9,7 +9,7 @@ const {
 	PINNED_ARCHIVE_SHA256,
 	downloadUrl,
 	sha256,
-} = require('../src/rtkRuntime');
+} = require('../src/tools/rtk/runtime');
 
 const execFileAsync = promisify(execFile);
 const RTK_TAG = 'dev-1.3.0-rc.642';

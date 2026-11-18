@@ -5,7 +5,7 @@ const {
 	CURRENT_RUNTIME_MANIFEST_SCHEMA,
 	migratePolicy,
 	migrateRuntimeManifest,
-} = require('../../src/migrations');
+} = require('../../src/core/migrations');
 
 test('policy migration preserves settings and adds a schema version', () => {
 	const migrated = migratePolicy({ allowlist: ['git'], commandOverrides: { 'git diff': true } });

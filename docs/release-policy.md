@@ -2,7 +2,7 @@
 
 ## Staged rollout
 
-The managed RTK runtime is controlled by `brevity.rtk.enabled`, defaulting to
+The managed RTK runtime is controlled by `brevity.enabled`, defaulting to
 true. Release in stages:
 
 Tagged releases run the repository release workflow. The workflow installs
@@ -10,12 +10,12 @@ locked dependencies, runs lint and unit tests, builds the VSIX, checks its
 contents, generates a SHA-256 checksum, and attaches both files to the GitHub
 release. Release in stages:
 
-Operational rollout uses the local `brevity.rtk.rolloutStage` label:
+Operational rollout uses the local `brevity.rolloutStage` label:
 `preview`, `staged`, or `general`. If a release must be stopped immediately,
-set `brevity.rtk.killSwitch` to true or run **Brevity: Emergency Disable RTK**.
+set `brevity.killSwitch` to true or run **Brevity: Emergency Disable**.
 This disables rewriting and removes Brevity-owned hook entries without
 removing unrelated Copilot configuration. Clear the kill switch before using
-**Brevity: Enable RTK** again. Release in stages:
+**Brevity: Enable** again. Release in stages:
 
 1. Run the combined test pipeline and package checks.
 2. Publish the extension update.
@@ -35,9 +35,9 @@ An update must preserve existing settings and unrelated Copilot hooks.
 
 ## Emergency bypass
 
-- Run **Brevity: Disable RTK and Remove Copilot Hook** to stop automatic setup.
-- Run **Brevity: Uninstall Managed RTK Runtime** to remove cached files.
-- Set `brevity.rtk.enabled` to false.
+- Run **Brevity: Disable** to stop automatic setup.
+- Run **Brevity: Uninstall** to remove cached files.
+- Set `brevity.enabled` to false.
 - Run `rtk bypass <command>` for raw output.
 
 ## Rollback criteria

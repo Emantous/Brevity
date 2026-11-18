@@ -40,7 +40,7 @@ remote extension host activates again.
 
 ## Installation behavior
 
-Brevity downloads RTK after VS Code startup when `brevity.rtk.enabled` is true.
+Brevity downloads RTK after VS Code startup when `brevity.enabled` is true.
 The download has a 30-second timeout, bounded archive size, three attempts,
 and bounded redirects. The release `checksums.txt` entry must match the
 SHA-256 hash of the downloaded archive before extraction.
@@ -57,11 +57,11 @@ manifest.
 
 The runtime status and retry commands are:
 
-- `Brevity: Show RTK Runtime Status`
-- `Brevity: Enable RTK`
-- `Brevity: Retry RTK Runtime Setup`
-- `Brevity: Disable RTK and Remove Copilot Hook`
-- `Brevity: Uninstall Managed RTK Runtime`
+- `Brevity: Show Status`
+- `Brevity: Enable`
+- `Brevity: Retry Tools`
+- `Brevity: Disable`
+- `Brevity: Uninstall`
 
 ## Copilot hook integration
 
@@ -113,9 +113,9 @@ Brevity uses a conservative allowlist before calling RTK:
 
 The settings:
 
-- `brevity.rtk.commands.allowlist`
-- `brevity.rtk.commands.excludePatterns`
-- `brevity.rtk.commands.overrides`
+- `brevity.tools.commands.allowlist`
+- `brevity.tools.commands.excludePatterns`
+- `brevity.tools.commands.overrides`
 
 control this policy. An exclusion may be an exact command prefix or a regular
 expression beginning with `^`. Git filters that have not met the measured

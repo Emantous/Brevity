@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getExecutionContext } = require('../../src/executionContext');
+const { getExecutionContext } = require('../../src/core/executionContext');
 
 test('execution context distinguishes local, WSL, containers, and remote hosts', () => {
 	assert.deepEqual(getExecutionContext({ platform: 'linux' }), {

@@ -5,15 +5,15 @@
 | State | Meaning | Recovery |
 | --- | --- | --- |
 | Ready | RTK and the Copilot hook are installed | No action is required |
-| Setup needed | RTK could not be downloaded or verified | Run **Brevity: Retry RTK Runtime Setup** |
+| Setup needed | RTK could not be downloaded or verified | Run **Brevity: Retry Tools** |
 | No hook | RTK is ready but no project hook is active | Open a workspace, then retry setup |
-| Off | Brevity is disabled | Enable `brevity.rtk.enabled` and retry setup |
+| Off | Brevity is disabled | Enable `brevity.enabled` and retry setup |
 
 ## RTK download fails
 
-Run **Brevity: Show RTK Runtime Status**, then open the **Brevity RTK** output
+Run **Brevity: Show Status**, then open the **Brevity RTK** output
 channel. Check internet access and HTTPS filtering. Repeat
-**Brevity: Retry RTK Runtime Setup**.
+**Brevity: Retry Tools**.
 
 If setup does not complete, Brevity leaves commands unchanged. No manual RTK
 installation is required.
@@ -76,9 +76,9 @@ than using a local binary that is not visible to the remote process.
 
 ## Disable or fully uninstall
 
-- **Brevity: Disable RTK and Remove Copilot Hook** disables the setting and
+- **Brevity: Disable** disables the setting and
   removes Brevity's hook entries.
-- **Brevity: Uninstall Managed RTK Runtime** also removes the extension-managed
+- **Brevity: Uninstall** also removes the extension-managed
   runtime cache.
 
 The uninstall commands do not delete unrelated Copilot hooks or workspace files.

@@ -2,9 +2,11 @@
 
 ## Decision
 
-Brevity is a local, fail-open command-output adapter for VS Code Copilot Chat
-and Copilot CLI. It owns runtime acquisition, policy evaluation, hook
-registration, aggregate metrics, and recovery. RTK owns output compression.
+Brevity is a local, fail-open token-reduction platform for VS Code Copilot
+Chat and Copilot CLI. It owns tool lifecycle, strategy coordination, policy
+evaluation, hook registration, aggregate metrics, and recovery. Individual
+tools implement strategy-specific behavior. RTK is the first command-output
+compression adapter.
 
 ## Data flow
 
@@ -37,7 +39,7 @@ request.
 | --- | --- |
 | Runtime download, digest verification, extraction, cache | Brevity |
 | Command parsing and safety policy | Brevity |
-| Output compression | RTK |
+| Command-output compression | A registered tool adapter, initially RTK |
 | Copilot hook registration and removal | Brevity |
 | Terminal execution and permissions | Copilot host |
 | Local aggregate metrics | Brevity |
