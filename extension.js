@@ -6,6 +6,7 @@ const path = require('path');
 const { RtkRuntimeManager, RTK_TAG } = require('./src/rtkRuntime');
 const { CopilotHookManager } = require('./src/copilotHookManager');
 const { formatStatus, countSupportedCommands } = require('./src/uxStatus');
+const { clearMetrics, readMetrics, summarizeMetrics } = require('./src/metrics');
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -19,6 +20,7 @@ function activate(context) {
 	const helloDisposable = vscode.commands.registerCommand('brevity.helloWorld', function () {
 		vscode.window.showInformationMessage('Hello World from Brevity!');
 	});
+	const metricsFilePath = path.join(context.globalStorageUri.fsPath, 'rtk', 'metrics.json');
 
 	const output = vscode.window.createOutputChannel('Brevity RTK');
 	const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
@@ -50,8 +52,17 @@ function activate(context) {
 				? `Hook installed: ${item.hookPath}`
 				: `Hook not installed: ${item.hookPath}`).join('\n');
 		vscode.window.showInformationMessage(
-			`${status.message}\n${hookMessage}\nSupported command families: ${supportedCount}`,
+			`${status.message}\n${hookMessage}\nSupported command families: ${supportedCount}\nMetrics: ${summarizeMetrics(readMetrics(metricsFilePath))}`,
 		);
+	});
+
+	const metricsDisposable = vscode.commands.registerCommand('brevity.rtkMetrics', function () {
+		vscode.window.showInformationMessage(`Brevity local metrics: ${summarizeMetrics(readMetrics(metricsFilePath))}`);
+	});
+
+	const clearMetricsDisposable = vscode.commands.registerCommand('brevity.rtkClearMetrics', async function () {
+		await clearMetrics(metricsFilePath);
+		vscode.window.showInformationMessage('Brevity local metrics were cleared.');
 	});
 
 	let retryDisposable = vscode.commands.registerCommand('brevity.rtkRetry', async function () {
@@ -100,6 +111,8 @@ function activate(context) {
 	context.subscriptions.push(
 		helloDisposable,
 		statusDisposable,
+		metricsDisposable,
+		clearMetricsDisposable,
 		retryDisposable,
 		disableDisposable,
 		uninstallDisposable,
@@ -126,6 +139,7 @@ function activate(context) {
 			nodeExecutablePath: process.execPath,
 			hookScriptPath: context.asAbsolutePath('src/copilotHook.js'),
 			policyFilePath,
+			metricsFilePath,
 			output: (message) => output.appendLine(message),
 		});
 	}

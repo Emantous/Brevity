@@ -14,7 +14,7 @@ function powershellQuote(value) {
 	return `'${value.replace(/'/g, "''")}'`;
 }
 
-function buildHookEntry(executablePath, nodeExecutablePath, hookScriptPath, policyFilePath) {
+function buildHookEntry(executablePath, nodeExecutablePath, hookScriptPath, policyFilePath, metricsFilePath) {
 	const bashExecutable = shellQuote(executablePath);
 	const powershellExecutable = powershellQuote(executablePath);
 	const bashNode = shellQuote(nodeExecutablePath);
@@ -23,11 +23,13 @@ function buildHookEntry(executablePath, nodeExecutablePath, hookScriptPath, poli
 	const powershellHookScript = powershellQuote(hookScriptPath);
 	const bashPolicy = shellQuote(policyFilePath);
 	const powershellPolicy = powershellQuote(policyFilePath);
+	const bashMetrics = shellQuote(metricsFilePath || '');
+	const powershellMetrics = powershellQuote(metricsFilePath || '');
 
 	return {
 		type: 'command',
-		bash: `# ${BREVITY_MARKER}; if [ -x ${bashExecutable} ] && [ -x ${bashNode} ]; then ELECTRON_RUN_AS_NODE=1 exec ${bashNode} ${bashHookScript} ${bashExecutable} ${bashPolicy}; fi`,
-		powershell: `# ${BREVITY_MARKER}; if (Test-Path -LiteralPath ${powershellExecutable}) { $env:ELECTRON_RUN_AS_NODE='1'; & ${powershellNode} ${powershellHookScript} ${powershellExecutable} ${powershellPolicy} }`,
+		bash: `# ${BREVITY_MARKER}; if [ -x ${bashExecutable} ] && [ -x ${bashNode} ]; then ELECTRON_RUN_AS_NODE=1 exec ${bashNode} ${bashHookScript} ${bashExecutable} ${bashPolicy} ${bashMetrics}; fi`,
+		powershell: `# ${BREVITY_MARKER}; if (Test-Path -LiteralPath ${powershellExecutable}) { $env:ELECTRON_RUN_AS_NODE='1'; & ${powershellNode} ${powershellHookScript} ${powershellExecutable} ${powershellPolicy} ${powershellMetrics} }`,
 		cwd: '.',
 		timeoutSec: 5,
 	};
@@ -59,6 +61,7 @@ class CopilotHookManager {
 		nodeExecutablePath = process.execPath,
 		hookScriptPath,
 		policyFilePath,
+		metricsFilePath,
 		output = () => {},
 		platform = process.platform,
 	}) {
@@ -67,6 +70,7 @@ class CopilotHookManager {
 		this.nodeExecutablePath = nodeExecutablePath;
 		this.hookScriptPath = hookScriptPath;
 		this.policyFilePath = policyFilePath;
+		this.metricsFilePath = metricsFilePath;
 		this.output = output;
 		this.platform = platform;
 	}
@@ -172,6 +176,7 @@ class CopilotHookManager {
 				this.nodeExecutablePath,
 				this.hookScriptPath,
 				this.policyFilePath,
+				this.metricsFilePath,
 			), ...unrelated];
 
 			await this.writeHookFile(hookPath, config);

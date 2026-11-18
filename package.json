@@ -37,6 +37,14 @@
       {
         "command": "brevity.rtkUninstall",
         "title": "Brevity: Uninstall Managed RTK Runtime"
+      },
+      {
+        "command": "brevity.rtkMetrics",
+        "title": "Brevity: Show Local Metrics"
+      },
+      {
+        "command": "brevity.rtkClearMetrics",
+        "title": "Brevity: Clear Local Metrics"
       }
     ],
     "configuration": {
