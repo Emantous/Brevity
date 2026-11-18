@@ -15,6 +15,18 @@ const DEFAULT_COMMAND_ALLOWLIST = [
 	'aws',
 	'az',
 	'gcloud',
+	'ls',
+	'find',
+	'grep',
+	'rg',
+	'du',
+	'df',
+	'stat',
+	'file',
+	'pwd',
+	'tree',
+	'curl',
+	'wget',
 ];
 
 const GIT_SAFE_SUBCOMMANDS = new Set([
@@ -70,6 +82,10 @@ const TEST_BUILD_EXECUTABLES = new Set([
 	'phpunit',
 ]);
 const CONTAINER_CLOUD_EXECUTABLES = new Set(['docker', 'kubectl', 'aws', 'az', 'gcloud']);
+const FILESYSTEM_EXECUTABLES = new Set([
+	'ls', 'find', 'grep', 'rg', 'du', 'df', 'stat', 'file', 'pwd', 'tree',
+]);
+const NETWORK_EXECUTABLES = new Set(['curl', 'wget']);
 const DOCKER_READ_COMMANDS = new Set(['images', 'info', 'inspect', 'logs', 'ps', 'stats', 'version']);
 const KUBECTL_READ_COMMANDS = new Set(['describe', 'explain', 'get', 'logs', 'top', 'version']);
 const CLOUD_READ_ACTION_PATTERN = /^(?:describe|explain|get|head|help|list|ls|version|wait)(?:[-:]|$)/i;
@@ -105,6 +121,13 @@ const SAFE_PACKAGE_SCRIPT_PATTERN = /^(?:build|check|format|lint|test|typecheck)
 const SENSITIVE_ENVIRONMENT_PATTERN = /(?:AUTH|CREDENTIAL|KEY|PASS(?:WORD)?|SECRET|TOKEN)/i;
 const SENSITIVE_ARGUMENT_PATTERN = /(?:^|[-_])(?:api[-_]?key|credential|pass(?:word)?|secret|token)(?:[-_=]|$)/i;
 const DANGEROUS_FLAG_PATTERN = /^(?:-[^-]*[dD]|--delete(?:=|$)|--force(?:=|$)|--hard(?:=|$)|--soft(?:=|$))$/;
+const FILESYSTEM_MUTATION_PATTERN = /^(?:-delete|--delete|-exec|--exec|--execdir)$/;
+const NETWORK_MUTATION_FLAGS = new Set([
+	'-d', '--data', '--data-binary', '--data-raw', '--data-urlencode',
+	'-f', '--form', '-F', '-o', '--output', '-O', '--remote-name',
+	'-T', '--upload-file', '-u', '--user', '--spider',
+]);
+const NETWORK_SECRET_PATTERN = /(?:authorization|cookie|credential|password|secret|token)/i;
 
 function pathBaseName(value) {
 	return value.replace(/\\/g, '/').split('/').pop();
@@ -253,7 +276,16 @@ function hasDangerousIntent(parsed) {
 
 	const commandWords = [parsed.subcommand, ...parsed.args].filter(Boolean);
 	return [...parsed.flags, ...parsed.args].some((value) =>
-		SENSITIVE_ARGUMENT_PATTERN.test(value) || INTERACTIVE_TEST_FLAGS.has(value)) ||
+		SENSITIVE_ARGUMENT_PATTERN.test(value) ||
+			INTERACTIVE_TEST_FLAGS.has(value) ||
+			(FILESYSTEM_EXECUTABLES.has(parsed.executable) && FILESYSTEM_MUTATION_PATTERN.test(value)) ||
+			(NETWORK_EXECUTABLES.has(parsed.executable) && NETWORK_SECRET_PATTERN.test(value))) ||
+		(NETWORK_EXECUTABLES.has(parsed.executable) &&
+			(parsed.executable === 'wget'
+				? !parsed.flags.includes('--spider')
+				: parsed.flags.some((flag) => NETWORK_MUTATION_FLAGS.has(flag) ||
+					(flag === '-X' || flag === '--request')) &&
+					!['GET', 'HEAD'].includes((parsed.args[0] || '').toUpperCase()))) ||
 		(CONTAINER_CLOUD_EXECUTABLES.has(parsed.executable) &&
 			commandWords.some((value) => MUTATION_COMMAND_PATTERN.test(value)));
 }
@@ -343,6 +375,17 @@ function isBrevityAllowedCommand(command, options = {}) {
 	}
 	if (CONTAINER_CLOUD_EXECUTABLES.has(parsed.executable)) {
 		return isContainerCloudReadCommand(parsed);
+	}
+	if (FILESYSTEM_EXECUTABLES.has(parsed.executable)) {
+		return true;
+	}
+	if (parsed.executable === 'curl') {
+		return [parsed.subcommand, ...parsed.args].some((value) =>
+			/^https?:\/\//i.test(value || ''));
+	}
+	if (parsed.executable === 'wget') {
+		return parsed.flags.includes('--spider') &&
+			parsed.args.some((value) => /^https?:\/\//i.test(value));
 	}
 	return false;
 }

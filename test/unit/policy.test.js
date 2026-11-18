@@ -47,6 +47,15 @@ test('allowlist supports read and build commands conservatively', () => {
 		'aws ec2 describe-instances',
 		'az vm list',
 		'gcloud compute instances list',
+		'ls -la src',
+		'find src -type f',
+		'grep -R TODO src',
+		'rg TODO src',
+		'du -sh .',
+		'df -h .',
+		'curl https://example.com',
+		'curl -I https://example.com',
+		'wget --spider https://example.com',
 	]) {
 		assert.equal(isBrevityAllowedCommand(command), true, command);
 	}
@@ -60,7 +69,6 @@ test('allowlist supports read and build commands conservatively', () => {
 	for (const command of [
 		'git rebase -i HEAD~2',
 		'git status && rm -rf /',
-		'curl https://example.com',
 		'rtk bypass git status',
 		'cat <<EOF\nhello\nEOF',
 		'sudo git status',
@@ -84,6 +92,11 @@ test('allowlist supports read and build commands conservatively', () => {
 		'az vm start --name app',
 		'gcloud compute instances delete app',
 		'aws ec2 describe-instances --token secret',
+		'find . -delete',
+		'curl -d payload https://example.com',
+		'curl -H Authorization:secret https://example.com',
+		'curl -u user:password https://example.com',
+		'wget https://example.com/archive.zip',
 	]) {
 		assert.equal(isBrevityAllowedCommand(command), false, command);
 	}

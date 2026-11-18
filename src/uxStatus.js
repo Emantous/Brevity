@@ -41,6 +41,18 @@ function countSupportedCommands(allowlist = []) {
 		aws: 4,
 		az: 4,
 		gcloud: 4,
+		ls: 1,
+		find: 1,
+		grep: 1,
+		rg: 1,
+		du: 1,
+		df: 1,
+		stat: 1,
+		file: 1,
+		pwd: 1,
+		tree: 1,
+		curl: 1,
+		wget: 1,
 	};
 	return [...new Set(allowlist)]
 		.reduce((count, family) => count + (countByFamily[family.toLowerCase()] || 0), 0);

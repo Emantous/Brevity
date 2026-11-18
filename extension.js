@@ -40,6 +40,8 @@ function activate(context) {
 				'git', 'npm', 'pnpm', 'yarn', 'cargo',
 				'pytest', 'mvn', 'gradle', 'dotnet', 'go', 'phpunit',
 				'docker', 'kubectl', 'aws', 'az', 'gcloud',
+				'ls', 'find', 'grep', 'rg', 'du', 'df', 'stat', 'file', 'pwd', 'tree',
+				'curl', 'wget',
 			]);
 		const supportedCount = countSupportedCommands(allowlist);
 		const hookMessage = hookStatuses.length === 0
@@ -151,6 +153,8 @@ function activate(context) {
 							'git', 'npm', 'pnpm', 'yarn', 'cargo',
 							'pytest', 'mvn', 'gradle', 'dotnet', 'go', 'phpunit',
 							'docker', 'kubectl', 'aws', 'az', 'gcloud',
+							'ls', 'find', 'grep', 'rg', 'du', 'df', 'stat', 'file', 'pwd', 'tree',
+							'curl', 'wget',
 						]),
 					excludePatterns: vscode.workspace
 						.getConfiguration('brevity')

@@ -81,6 +81,7 @@ Brevity uses a conservative allowlist before calling RTK:
 - `cargo` test/build/check/clippy/nextest commands
 - common `pytest`, Maven, Gradle, .NET, Go, and PHPUnit test/build commands
 - read-only Docker, Kubernetes, and cloud list/describe commands
+- read-only filesystem inspection and safe HTTP metadata/read commands
 
 The settings:
 

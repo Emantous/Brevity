@@ -41,6 +41,7 @@ Brevity initially compresses:
 - Common cargo test/build/check/clippy/nextest commands
 - Common pytest, Maven, Gradle, .NET, Go, and PHPUnit test/build commands
 - Read-only Docker, Kubernetes, and cloud list/describe commands
+- Read-only filesystem inspection and safe HTTP metadata/read requests
 
 Unknown, shell-sensitive, and unmeasured Git commands pass through unchanged.
 Additional Git filters can be enabled individually with measured command
