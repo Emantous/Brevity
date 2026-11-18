@@ -39,6 +39,7 @@ Brevity initially compresses:
 - Measured Git status output through `git status`
 - Common npm, pnpm, and yarn test/run/build/list commands
 - Common cargo test/build/check/clippy/nextest commands
+- Common pytest, Maven, Gradle, .NET, Go, and PHPUnit test/build commands
 
 Unknown, shell-sensitive, and unmeasured Git commands pass through unchanged.
 Additional Git filters can be enabled individually with measured command

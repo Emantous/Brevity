@@ -30,6 +30,12 @@ function countSupportedCommands(allowlist = []) {
 		pnpm: 7,
 		yarn: 7,
 		cargo: 7,
+		pytest: 1,
+		mvn: 5,
+		gradle: 4,
+		dotnet: 2,
+		go: 4,
+		phpunit: 1,
 	};
 	return [...new Set(allowlist)]
 		.reduce((count, family) => count + (countByFamily[family.toLowerCase()] || 0), 0);

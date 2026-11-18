@@ -36,7 +36,10 @@ function activate(context) {
 		const hookManager = createHookManager(manager.executablePath);
 		const hookStatuses = await hookManager.status();
 		const allowlist = vscode.workspace.getConfiguration('brevity')
-			.get('rtk.commands.allowlist', ['git', 'npm', 'pnpm', 'yarn', 'cargo']);
+			.get('rtk.commands.allowlist', [
+				'git', 'npm', 'pnpm', 'yarn', 'cargo',
+				'pytest', 'mvn', 'gradle', 'dotnet', 'go', 'phpunit',
+			]);
 		const supportedCount = countSupportedCommands(allowlist);
 		const hookMessage = hookStatuses.length === 0
 			? 'No workspace is open, so no project hook is registered.'
@@ -143,7 +146,10 @@ function activate(context) {
 				JSON.stringify({
 					allowlist: vscode.workspace
 						.getConfiguration('brevity')
-						.get('rtk.commands.allowlist', ['git', 'npm', 'pnpm', 'yarn', 'cargo']),
+						.get('rtk.commands.allowlist', [
+							'git', 'npm', 'pnpm', 'yarn', 'cargo',
+							'pytest', 'mvn', 'gradle', 'dotnet', 'go', 'phpunit',
+						]),
 					excludePatterns: vscode.workspace
 						.getConfiguration('brevity')
 						.get('rtk.commands.excludePatterns', []),

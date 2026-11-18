@@ -4,6 +4,12 @@ const DEFAULT_COMMAND_ALLOWLIST = [
 	'pnpm',
 	'yarn',
 	'cargo',
+	'pytest',
+	'mvn',
+	'gradle',
+	'dotnet',
+	'go',
+	'phpunit',
 ];
 
 const GIT_SAFE_SUBCOMMANDS = new Set([
@@ -43,6 +49,27 @@ const BUILD_SUBCOMMANDS = new Set([
 	'outdated',
 	'info',
 	'view',
+]);
+const TEST_BUILD_COMMANDS = {
+	mvn: new Set(['test', 'verify', 'package', 'compile', 'checkstyle:check']),
+	gradle: new Set(['test', 'build', 'check', 'assemble']),
+	dotnet: new Set(['test', 'build']),
+	go: new Set(['test', 'build', 'vet', 'list']),
+};
+const TEST_BUILD_EXECUTABLES = new Set([
+	'pytest',
+	'mvn',
+	'gradle',
+	'dotnet',
+	'go',
+	'phpunit',
+]);
+const INTERACTIVE_TEST_FLAGS = new Set([
+	'--pdb',
+	'--trace',
+	'--debug',
+	'--console',
+	'--interactive',
 ]);
 const PRIVILEGED_EXECUTABLES = new Set(['sudo', 'su', 'doas']);
 const DANGEROUS_GIT_SUBCOMMANDS = new Set([
@@ -215,7 +242,7 @@ function hasDangerousIntent(parsed) {
 	}
 
 	return [...parsed.flags, ...parsed.args].some((value) =>
-		SENSITIVE_ARGUMENT_PATTERN.test(value));
+		SENSITIVE_ARGUMENT_PATTERN.test(value) || INTERACTIVE_TEST_FLAGS.has(value));
 }
 
 function commandKey(parsed) {
@@ -280,6 +307,12 @@ function isBrevityAllowedCommand(command, options = {}) {
 		return parsed.subcommand === 'run'
 			? SAFE_PACKAGE_SCRIPT_PATTERN.test(parsed.args[0] || '')
 			: BUILD_SUBCOMMANDS.has(parsed.subcommand);
+	}
+	if (TEST_BUILD_EXECUTABLES.has(parsed.executable)) {
+		if (parsed.executable === 'pytest' || parsed.executable === 'phpunit') {
+			return true;
+		}
+		return TEST_BUILD_COMMANDS[parsed.executable].has(parsed.subcommand);
 	}
 	return false;
 }

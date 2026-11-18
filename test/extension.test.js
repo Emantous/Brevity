@@ -188,6 +188,7 @@ suite('Extension Test Suite', () => {
 	test('UX supported-command count does not expose command contents', () => {
 		assert.strictEqual(countSupportedCommands(['git']), 6);
 		assert.strictEqual(countSupportedCommands(['git', 'npm', 'cargo']), 20);
+		assert.strictEqual(countSupportedCommands(['pytest', 'mvn', 'gradle', 'dotnet', 'go', 'phpunit']), 17);
 		assert.strictEqual(countSupportedCommands([]), 0);
 	});
 });

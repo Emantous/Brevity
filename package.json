@@ -50,7 +50,10 @@
         "brevity.rtk.commands.allowlist": {
           "type": "array",
           "items": { "type": "string" },
-          "default": ["git", "npm", "pnpm", "yarn", "cargo"],
+          "default": [
+            "git", "npm", "pnpm", "yarn", "cargo",
+            "pytest", "mvn", "gradle", "dotnet", "go", "phpunit"
+          ],
           "description": "Command families Brevity may rewrite through RTK."
         },
         "brevity.rtk.commands.excludePatterns": {

@@ -34,6 +34,12 @@ test('allowlist supports read and build commands conservatively', () => {
 		'cargo test',
 		'cargo clippy',
 		'npm run build',
+		'pytest tests/test_policy.py',
+		'mvn test',
+		'gradle check',
+		'dotnet test',
+		'go test ./...',
+		'phpunit tests',
 	]) {
 		assert.equal(isBrevityAllowedCommand(command), true, command);
 	}
@@ -58,6 +64,11 @@ test('allowlist supports read and build commands conservatively', () => {
 		'pnpm exec vitest --run',
 		'GITHUB_TOKEN=secret npm test',
 		'npm test --token=secret',
+		'pytest --pdb',
+		'mvn deploy',
+		'gradle publish',
+		'dotnet run',
+		'go run ./cmd/server',
 	]) {
 		assert.equal(isBrevityAllowedCommand(command), false, command);
 	}
