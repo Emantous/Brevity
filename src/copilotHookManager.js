@@ -4,6 +4,7 @@ const path = require('path');
 
 const HOOK_FILE_NAME = 'rtk-rewrite.json';
 const BREVITY_MARKER = 'BREVITY_RTK_HOOK_V1';
+const MALFORMED_HOOK_CODE = 'EBADJSON';
 
 function shellQuote(value) {
 	return `'${value.replace(/'/g, `'\\''`)}'`;
@@ -80,19 +81,82 @@ class CopilotHookManager {
 	async readHookFile(hookPath) {
 		try {
 			const text = await fsPromises.readFile(hookPath, 'utf8');
-			return JSON.parse(text);
+			try {
+				return JSON.parse(text);
+			} catch (error) {
+				error.code = MALFORMED_HOOK_CODE;
+				throw error;
+			}
 		} catch (error) {
 			if (error.code === 'ENOENT') {
 				return null;
+			}
+			if (error.code === MALFORMED_HOOK_CODE) {
+				throw new Error(`Cannot safely update Copilot hook ${hookPath}: invalid JSON`, {
+					cause: error,
+				});
 			}
 			throw new Error(`Cannot safely update Copilot hook ${hookPath}: ${error.message}`);
 		}
 	}
 
+	async backupHookFile(hookPath) {
+		const backupPath = `${hookPath}.bak`;
+		try {
+			await fsPromises.copyFile(hookPath, backupPath);
+		} catch (error) {
+			if (error.code !== 'ENOENT') {
+				throw new Error(`Cannot back up Copilot hook ${hookPath}: ${error.message}`);
+			}
+		}
+		return backupPath;
+	}
+
+	async writeHookFile(hookPath, config) {
+		await fsPromises.mkdir(path.dirname(hookPath), { recursive: true });
+		await this.backupHookFile(hookPath);
+
+		const temporaryPath = `${hookPath}.${process.pid}.${Date.now()}.tmp`;
+		const contents = `${JSON.stringify(config, null, 2)}\n`;
+		try {
+			const handle = await fsPromises.open(temporaryPath, 'wx', 0o600);
+			try {
+				await handle.writeFile(contents, { encoding: 'utf8' });
+				await handle.sync();
+			} finally {
+				await handle.close();
+			}
+			await fsPromises.rename(temporaryPath, hookPath);
+		} catch (error) {
+			await fsPromises.rm(temporaryPath, { force: true });
+			throw new Error(`Cannot safely write Copilot hook ${hookPath}: ${error.message}`);
+		}
+	}
+
+	async recoverMalformedHook(hookPath) {
+		const backupPath = `${hookPath}.malformed.bak`;
+		try {
+			await fsPromises.rename(hookPath, backupPath);
+		} catch (error) {
+			throw new Error(`Cannot recover malformed Copilot hook ${hookPath}: ${error.message}`);
+		}
+		this.output(`Backed up malformed Copilot hook: ${backupPath}`);
+	}
+
 	async install() {
 		const results = [];
 		for (const hookPath of this.getHookPaths()) {
-			const existing = await this.readHookFile(hookPath);
+			let existing;
+			try {
+				existing = await this.readHookFile(hookPath);
+			} catch (error) {
+				if (error.cause && error.cause.code === MALFORMED_HOOK_CODE) {
+					await this.recoverMalformedHook(hookPath);
+					existing = null;
+				} else {
+					throw error;
+				}
+			}
 			const config = existing || { version: 1, hooks: {} };
 
 			if (!config.hooks || typeof config.hooks !== 'object') {
@@ -110,11 +174,7 @@ class CopilotHookManager {
 				this.policyFilePath,
 			), ...unrelated];
 
-			await fsPromises.mkdir(path.dirname(hookPath), { recursive: true });
-			await fsPromises.writeFile(hookPath, `${JSON.stringify(config, null, 2)}\n`, {
-				encoding: 'utf8',
-				mode: 0o600,
-			});
+			await this.writeHookFile(hookPath, config);
 			this.output(`Installed Brevity Copilot hook: ${hookPath}`);
 			results.push({ hookPath, installed: true });
 		}
@@ -143,16 +203,14 @@ class CopilotHookManager {
 
 			existing.hooks.PreToolUse = remaining;
 			if (remaining.length === 0) {
+				await this.backupHookFile(hookPath);
 				delete existing.hooks.PreToolUse;
 			}
 			if (Object.keys(existing.hooks).length === 0) {
 				await fsPromises.unlink(hookPath);
 				this.output(`Removed Brevity Copilot hook: ${hookPath}`);
 			} else {
-				await fsPromises.writeFile(hookPath, `${JSON.stringify(existing, null, 2)}\n`, {
-					encoding: 'utf8',
-					mode: 0o600,
-				});
+				await this.writeHookFile(hookPath, existing);
 				this.output(`Removed Brevity entry from Copilot hook: ${hookPath}`);
 			}
 			results.push({ hookPath, removed: true });

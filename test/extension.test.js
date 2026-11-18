@@ -97,6 +97,10 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(config.hooks.PreToolUse.length, 2);
 		assert.ok(config.hooks.PreToolUse.some((entry) => isBrevityEntry(entry)));
 		assert.ok(config.hooks.PreToolUse.includes(unrelated) || config.hooks.PreToolUse.some((entry) => entry.bash === 'echo keep-me'));
+		assert.deepStrictEqual(
+			JSON.parse(await fsPromises.readFile(`${hookPath}.bak`, 'utf8')),
+			{ version: 1, hooks: { PreToolUse: [unrelated] } },
+		);
 
 		await manager.install();
 		config = JSON.parse(await fsPromises.readFile(hookPath, 'utf8'));
@@ -106,6 +110,29 @@ suite('Extension Test Suite', () => {
 		config = JSON.parse(await fsPromises.readFile(hookPath, 'utf8'));
 		assert.strictEqual(config.hooks.PreToolUse.length, 1);
 		assert.strictEqual(config.hooks.PreToolUse[0].bash, 'echo keep-me');
+		assert.ok(await fsPromises.stat(`${hookPath}.bak`));
+
+		await fsPromises.rm(workspace, { recursive: true, force: true });
+	});
+
+	test('Copilot hook install recovers malformed configuration with a backup', async () => {
+		const workspace = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'brevity-hook-recovery-test-'));
+		const hookPath = path.join(workspace, '.github', 'hooks', 'rtk-rewrite.json');
+		await fsPromises.mkdir(path.dirname(hookPath), { recursive: true });
+		await fsPromises.writeFile(hookPath, '{"hooks":');
+
+		const manager = new CopilotHookManager({
+			workspaceFolders: [workspace],
+			executablePath: path.join(workspace, 'rtk'),
+			nodeExecutablePath: process.execPath,
+			hookScriptPath: path.join(workspace, 'copilotHook.js'),
+			policyFilePath: path.join(workspace, 'policy.json'),
+		});
+
+		await manager.install();
+		const config = JSON.parse(await fsPromises.readFile(hookPath, 'utf8'));
+		assert.strictEqual(config.hooks.PreToolUse.filter(isBrevityEntry).length, 1);
+		assert.strictEqual(await fsPromises.readFile(`${hookPath}.malformed.bak`, 'utf8'), '{"hooks":');
 
 		await fsPromises.rm(workspace, { recursive: true, force: true });
 	});
