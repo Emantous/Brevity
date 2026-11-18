@@ -14,13 +14,33 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": ["onStartupFinished"],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "brevity.helloWorld",
-      "title": "Hello World"
-    }]
+    "commands": [
+      {
+        "command": "brevity.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "brevity.rtkStatus",
+        "title": "Brevity: Show RTK Runtime Status"
+      },
+      {
+        "command": "brevity.rtkRetry",
+        "title": "Brevity: Retry RTK Runtime Setup"
+      }
+    ],
+    "configuration": {
+      "title": "Brevity",
+      "properties": {
+        "brevity.rtk.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically manage the RTK runtime used for command output compression."
+        }
+      }
+    }
   },
   "scripts": {
     "lint": "eslint .",
@@ -32,8 +52,13 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
     "eslint": "^10.5.0",
+    "globals": "^16.0.0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.0.0"
+  },
+  "dependencies": {
+    "tar": "^7.5.23",
+    "yauzl": "^3.4.0"
   },
   "overrides": {
     "diff": "^8.0.4",

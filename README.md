@@ -79,6 +79,9 @@ npm test
 RTK licensing and attribution details are recorded in
 [Third-party notices](docs/third-party-notices.md).
 
+RTK runtime download, cache, and failure behavior is documented in
+[RTK runtime management](docs/rtk-runtime.md).
+
 ## License
 
 No license has been declared yet.
