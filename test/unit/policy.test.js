@@ -40,6 +40,13 @@ test('allowlist supports read and build commands conservatively', () => {
 		'dotnet test',
 		'go test ./...',
 		'phpunit tests',
+		'docker ps',
+		'docker inspect app',
+		'kubectl get pods',
+		'kubectl describe deployment/api',
+		'aws ec2 describe-instances',
+		'az vm list',
+		'gcloud compute instances list',
 	]) {
 		assert.equal(isBrevityAllowedCommand(command), true, command);
 	}
@@ -69,6 +76,14 @@ test('allowlist supports read and build commands conservatively', () => {
 		'gradle publish',
 		'dotnet run',
 		'go run ./cmd/server',
+		'docker run nginx',
+		'docker exec app sh',
+		'kubectl apply -f deployment.yaml',
+		'kubectl delete pod app',
+		'aws s3 cp secret.txt s3://bucket',
+		'az vm start --name app',
+		'gcloud compute instances delete app',
+		'aws ec2 describe-instances --token secret',
 	]) {
 		assert.equal(isBrevityAllowedCommand(command), false, command);
 	}

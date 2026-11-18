@@ -80,6 +80,7 @@ Brevity uses a conservative allowlist before calling RTK:
 - `npm`, `pnpm`, and `yarn` test/run/build/list-style commands
 - `cargo` test/build/check/clippy/nextest commands
 - common `pytest`, Maven, Gradle, .NET, Go, and PHPUnit test/build commands
+- read-only Docker, Kubernetes, and cloud list/describe commands
 
 The settings:
 

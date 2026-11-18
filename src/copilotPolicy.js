@@ -10,6 +10,11 @@ const DEFAULT_COMMAND_ALLOWLIST = [
 	'dotnet',
 	'go',
 	'phpunit',
+	'docker',
+	'kubectl',
+	'aws',
+	'az',
+	'gcloud',
 ];
 
 const GIT_SAFE_SUBCOMMANDS = new Set([
@@ -64,6 +69,11 @@ const TEST_BUILD_EXECUTABLES = new Set([
 	'go',
 	'phpunit',
 ]);
+const CONTAINER_CLOUD_EXECUTABLES = new Set(['docker', 'kubectl', 'aws', 'az', 'gcloud']);
+const DOCKER_READ_COMMANDS = new Set(['images', 'info', 'inspect', 'logs', 'ps', 'stats', 'version']);
+const KUBECTL_READ_COMMANDS = new Set(['describe', 'explain', 'get', 'logs', 'top', 'version']);
+const CLOUD_READ_ACTION_PATTERN = /^(?:describe|explain|get|head|help|list|ls|version|wait)(?:[-:]|$)/i;
+const MUTATION_COMMAND_PATTERN = /^(?:apply|build|cancel|cp|create|delete|deploy|edit|exec|import|patch|push|put|remove|replace|restart|rm|rmi|run|scale|set|start|stop|update|upload)$/i;
 const INTERACTIVE_TEST_FLAGS = new Set([
 	'--pdb',
 	'--trace',
@@ -241,8 +251,11 @@ function hasDangerousIntent(parsed) {
 		return true;
 	}
 
+	const commandWords = [parsed.subcommand, ...parsed.args].filter(Boolean);
 	return [...parsed.flags, ...parsed.args].some((value) =>
-		SENSITIVE_ARGUMENT_PATTERN.test(value) || INTERACTIVE_TEST_FLAGS.has(value));
+		SENSITIVE_ARGUMENT_PATTERN.test(value) || INTERACTIVE_TEST_FLAGS.has(value)) ||
+		(CONTAINER_CLOUD_EXECUTABLES.has(parsed.executable) &&
+			commandWords.some((value) => MUTATION_COMMAND_PATTERN.test(value)));
 }
 
 function commandKey(parsed) {
@@ -253,6 +266,20 @@ function isCommandEnabled(parsed, overrides = {}) {
 	const key = commandKey(parsed);
 	const configured = { ...DEFAULT_GIT_COMMAND_OVERRIDES, ...overrides };
 	return configured[key] === true;
+}
+
+function isContainerCloudReadCommand(parsed) {
+	if (parsed.executable === 'docker') {
+		return [parsed.subcommand, ...parsed.args].some((value) => DOCKER_READ_COMMANDS.has(value));
+	}
+	if (parsed.executable === 'kubectl') {
+		return KUBECTL_READ_COMMANDS.has(parsed.subcommand);
+	}
+	if (['aws', 'az', 'gcloud'].includes(parsed.executable)) {
+		return [parsed.subcommand, ...parsed.args].some((value) =>
+			CLOUD_READ_ACTION_PATTERN.test(value));
+	}
+	return false;
 }
 
 function matchesPattern(command, patterns = []) {
@@ -313,6 +340,9 @@ function isBrevityAllowedCommand(command, options = {}) {
 			return true;
 		}
 		return TEST_BUILD_COMMANDS[parsed.executable].has(parsed.subcommand);
+	}
+	if (CONTAINER_CLOUD_EXECUTABLES.has(parsed.executable)) {
+		return isContainerCloudReadCommand(parsed);
 	}
 	return false;
 }

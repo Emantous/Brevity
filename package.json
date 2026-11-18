@@ -52,7 +52,8 @@
           "items": { "type": "string" },
           "default": [
             "git", "npm", "pnpm", "yarn", "cargo",
-            "pytest", "mvn", "gradle", "dotnet", "go", "phpunit"
+            "pytest", "mvn", "gradle", "dotnet", "go", "phpunit",
+            "docker", "kubectl", "aws", "az", "gcloud"
           ],
           "description": "Command families Brevity may rewrite through RTK."
         },

@@ -36,6 +36,11 @@ function countSupportedCommands(allowlist = []) {
 		dotnet: 2,
 		go: 4,
 		phpunit: 1,
+		docker: 7,
+		kubectl: 5,
+		aws: 4,
+		az: 4,
+		gcloud: 4,
 	};
 	return [...new Set(allowlist)]
 		.reduce((count, family) => count + (countByFamily[family.toLowerCase()] || 0), 0);

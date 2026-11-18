@@ -39,6 +39,7 @@ function activate(context) {
 			.get('rtk.commands.allowlist', [
 				'git', 'npm', 'pnpm', 'yarn', 'cargo',
 				'pytest', 'mvn', 'gradle', 'dotnet', 'go', 'phpunit',
+				'docker', 'kubectl', 'aws', 'az', 'gcloud',
 			]);
 		const supportedCount = countSupportedCommands(allowlist);
 		const hookMessage = hookStatuses.length === 0
@@ -149,6 +150,7 @@ function activate(context) {
 						.get('rtk.commands.allowlist', [
 							'git', 'npm', 'pnpm', 'yarn', 'cargo',
 							'pytest', 'mvn', 'gradle', 'dotnet', 'go', 'phpunit',
+							'docker', 'kubectl', 'aws', 'az', 'gcloud',
 						]),
 					excludePatterns: vscode.workspace
 						.getConfiguration('brevity')
