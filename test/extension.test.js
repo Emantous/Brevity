@@ -147,7 +147,8 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(isBrevityAllowedCommand('cargo clippy'), true);
 		assert.strictEqual(isBrevityAllowedCommand('git rebase -i HEAD~2'), false);
 		assert.strictEqual(isBrevityAllowedCommand('git status && rm -rf /'), false);
-		assert.strictEqual(isBrevityAllowedCommand('curl https://example.com'), false);
+		assert.strictEqual(isBrevityAllowedCommand('curl https://example.com'), true);
+		assert.strictEqual(isBrevityAllowedCommand('curl -X POST https://example.com'), false);
 		assert.strictEqual(isBrevityAllowedCommand('rtk bypass git status'), false);
 		assert.strictEqual(isBrevityAllowedCommand('git status', {
 			excludePatterns: ['git status'],
