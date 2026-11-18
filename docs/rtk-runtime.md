@@ -71,6 +71,30 @@ Disabling the setting or running the disable command removes Brevity's entry.
 If no other hooks remain, Brevity removes the empty hook file. No unrelated
 Copilot configuration is deleted.
 
+## Command compression policy
+
+Brevity uses a conservative allowlist before calling RTK:
+
+- `git status`, `git diff`, `git log`, `git branch`, `git show`, and `git stats`
+- `npm`, `pnpm`, and `yarn` test/run/build/list-style commands
+- `cargo` test/build/check/clippy/nextest commands
+
+The settings:
+
+- `brevity.rtk.commands.allowlist`
+- `brevity.rtk.commands.excludePatterns`
+
+control this policy. An exclusion may be an exact command prefix or a regular
+expression beginning with `^`.
+
+Unknown commands, commands containing shell operators, heredocs, redirections,
+commands using `sudo`, and explicit `rtk bypass` commands pass through without
+RTK rewriting. Git mutating commands such as `git rebase` are not included in
+the initial allowlist.
+
+For raw output, run `rtk bypass <command>` in the terminal. RTK executes the
+command without filtering and tracks the bypass locally where supported.
+
 ## Failure behavior
 
 If a download, checksum, extraction, cache, or archive version check fails,

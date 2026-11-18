@@ -13,14 +13,20 @@ function powershellQuote(value) {
 	return `'${value.replace(/'/g, "''")}'`;
 }
 
-function buildHookEntry(executablePath) {
+function buildHookEntry(executablePath, nodeExecutablePath, hookScriptPath, policyFilePath) {
 	const bashExecutable = shellQuote(executablePath);
 	const powershellExecutable = powershellQuote(executablePath);
+	const bashNode = shellQuote(nodeExecutablePath);
+	const bashHookScript = shellQuote(hookScriptPath);
+	const powershellNode = powershellQuote(nodeExecutablePath);
+	const powershellHookScript = powershellQuote(hookScriptPath);
+	const bashPolicy = shellQuote(policyFilePath);
+	const powershellPolicy = powershellQuote(policyFilePath);
 
 	return {
 		type: 'command',
-		bash: `# ${BREVITY_MARKER}; if [ -x ${bashExecutable} ]; then exec ${bashExecutable} hook copilot; fi`,
-		powershell: `# ${BREVITY_MARKER}; if (Test-Path -LiteralPath ${powershellExecutable}) { & ${powershellExecutable} hook copilot }`,
+		bash: `# ${BREVITY_MARKER}; if [ -x ${bashExecutable} ] && [ -x ${bashNode} ]; then ELECTRON_RUN_AS_NODE=1 exec ${bashNode} ${bashHookScript} ${bashExecutable} ${bashPolicy}; fi`,
+		powershell: `# ${BREVITY_MARKER}; if (Test-Path -LiteralPath ${powershellExecutable}) { $env:ELECTRON_RUN_AS_NODE='1'; & ${powershellNode} ${powershellHookScript} ${powershellExecutable} ${powershellPolicy} }`,
 		cwd: '.',
 		timeoutSec: 5,
 	};
@@ -46,9 +52,20 @@ function isRtkEntry(entry) {
 }
 
 class CopilotHookManager {
-	constructor({ workspaceFolders, executablePath, output = () => {}, platform = process.platform }) {
+	constructor({
+		workspaceFolders,
+		executablePath,
+		nodeExecutablePath = process.execPath,
+		hookScriptPath,
+		policyFilePath,
+		output = () => {},
+		platform = process.platform,
+	}) {
 		this.workspaceFolders = workspaceFolders || [];
 		this.executablePath = executablePath;
+		this.nodeExecutablePath = nodeExecutablePath;
+		this.hookScriptPath = hookScriptPath;
+		this.policyFilePath = policyFilePath;
 		this.output = output;
 		this.platform = platform;
 	}
@@ -86,7 +103,12 @@ class CopilotHookManager {
 			}
 
 			const unrelated = config.hooks.PreToolUse.filter((entry) => !isRtkEntry(entry));
-			config.hooks.PreToolUse = [buildHookEntry(this.executablePath, this.platform), ...unrelated];
+			config.hooks.PreToolUse = [buildHookEntry(
+				this.executablePath,
+				this.nodeExecutablePath,
+				this.hookScriptPath,
+				this.policyFilePath,
+			), ...unrelated];
 
 			await fsPromises.mkdir(path.dirname(hookPath), { recursive: true });
 			await fsPromises.writeFile(hookPath, `${JSON.stringify(config, null, 2)}\n`, {

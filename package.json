@@ -42,6 +42,18 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically manage the RTK runtime used for command output compression."
+        },
+        "brevity.rtk.commands.allowlist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["git", "npm", "pnpm", "yarn", "cargo"],
+          "description": "Command families Brevity may rewrite through RTK."
+        },
+        "brevity.rtk.commands.excludePatterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Exact prefixes or regular expressions beginning with ^ that Brevity must not rewrite."
         }
       }
     }

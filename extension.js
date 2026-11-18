@@ -1,7 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
-const { RtkRuntimeManager } = require('./src/rtkRuntime');
+const fsPromises = require('fs').promises;
+const path = require('path');
+const { RtkRuntimeManager, RTK_TAG } = require('./src/rtkRuntime');
 const { CopilotHookManager } = require('./src/copilotHookManager');
 
 // This method is called when your extension is activated
@@ -69,9 +71,18 @@ function activate(context) {
 	);
 
 	function createHookManager(executablePath) {
+		const policyFilePath = path.join(
+			context.globalStorageUri.fsPath,
+			'rtk',
+			RTK_TAG,
+			'brevity-policy.json',
+		);
 		return new CopilotHookManager({
 			workspaceFolders: vscode.workspace.workspaceFolders,
 			executablePath,
+			nodeExecutablePath: process.execPath,
+			hookScriptPath: context.asAbsolutePath('src/copilotHook.js'),
+			policyFilePath,
 			output: (message) => output.appendLine(message),
 		});
 	}
@@ -82,12 +93,35 @@ function activate(context) {
 		}
 		const result = await manager.ensureRuntime();
 		if (result.ok) {
+			const policyDirectory = path.dirname(path.join(
+				context.globalStorageUri.fsPath,
+				'rtk',
+				RTK_TAG,
+				'brevity-policy.json',
+			));
+			await fsPromises.mkdir(policyDirectory, { recursive: true });
+			await fsPromises.writeFile(
+				path.join(policyDirectory, 'brevity-policy.json'),
+				JSON.stringify({
+					allowlist: vscode.workspace
+						.getConfiguration('brevity')
+						.get('rtk.commands.allowlist', ['git', 'npm', 'pnpm', 'yarn', 'cargo']),
+					excludePatterns: vscode.workspace
+						.getConfiguration('brevity')
+						.get('rtk.commands.excludePatterns', []),
+				}, null, 2),
+				{ encoding: 'utf8', mode: 0o600 },
+			);
 			await createHookManager(manager.executablePath).install();
 		}
 	}
 
 	const settingDisposable = vscode.workspace.onDidChangeConfiguration(async (event) => {
-		if (!event.affectsConfiguration('brevity.rtk.enabled')) {
+		if (
+			!event.affectsConfiguration('brevity.rtk.enabled') &&
+			!event.affectsConfiguration('brevity.rtk.commands.allowlist') &&
+			!event.affectsConfiguration('brevity.rtk.commands.excludePatterns')
+		) {
 			return;
 		}
 		if (vscode.workspace.getConfiguration('brevity').get('rtk.enabled', true)) {

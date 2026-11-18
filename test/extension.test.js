@@ -14,6 +14,7 @@ const {
 	buildHookEntry,
 	isBrevityEntry,
 } = require('../src/copilotHookManager');
+const { isBrevityAllowedCommand } = require('../src/copilotPolicy');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const os = require('os');
@@ -49,7 +50,12 @@ suite('Extension Test Suite', () => {
 	});
 
 	test('Copilot hook entry uses absolute RTK executable and fail-open shell guards', () => {
-		const entry = buildHookEntry('/opt/Brevity/rtk', 'linux');
+		const entry = buildHookEntry(
+			'/opt/Brevity/rtk',
+			process.execPath,
+			'/opt/Brevity/src/copilotHook.js',
+			'/opt/Brevity/policy.json',
+		);
 		assert.strictEqual(entry.cwd, '.');
 		assert.strictEqual(entry.timeoutSec, 5);
 		assert.ok(entry.bash.includes('/opt/Brevity/rtk'));
@@ -78,6 +84,9 @@ suite('Extension Test Suite', () => {
 		const manager = new CopilotHookManager({
 			workspaceFolders: [workspace],
 			executablePath: executable,
+			nodeExecutablePath: process.execPath,
+			hookScriptPath: path.join(workspace, 'copilotHook.js'),
+			policyFilePath: path.join(workspace, 'policy.json'),
 		});
 
 		await manager.install();
@@ -96,5 +105,19 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(config.hooks.PreToolUse[0].bash, 'echo keep-me');
 
 		await fsPromises.rm(workspace, { recursive: true, force: true });
+	});
+
+	test('Compression policy allows only conservative read and build commands', () => {
+		assert.strictEqual(isBrevityAllowedCommand('git status'), true);
+		assert.strictEqual(isBrevityAllowedCommand('git diff HEAD'), true);
+		assert.strictEqual(isBrevityAllowedCommand('npm test'), true);
+		assert.strictEqual(isBrevityAllowedCommand('cargo clippy'), true);
+		assert.strictEqual(isBrevityAllowedCommand('git rebase -i HEAD~2'), false);
+		assert.strictEqual(isBrevityAllowedCommand('git status && rm -rf /'), false);
+		assert.strictEqual(isBrevityAllowedCommand('curl https://example.com'), false);
+		assert.strictEqual(isBrevityAllowedCommand('rtk bypass git status'), false);
+		assert.strictEqual(isBrevityAllowedCommand('git status', {
+			excludePatterns: ['git status'],
+		}), false);
 	});
 });
