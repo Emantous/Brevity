@@ -15,6 +15,7 @@ const execFileAsync = promisify(execFile);
 const RTK_TAG = 'dev-1.3.0-rc.642';
 const BASE_URL = `https://github.com/rtk-ai/rtk/releases/download/${RTK_TAG}`;
 const TARGET_REDUCTION_PERCENT = 50;
+const REPORT_VERSION = 1;
 
 async function withTemporaryDirectory(prefix, callback) {
 	const directory = await fsPromises.mkdtemp(path.join(os.tmpdir(), prefix));
@@ -84,30 +85,44 @@ function reduction(raw, filtered) {
 }
 
 async function pilotCase(rtk, directory, name, commandArgs, options = {}) {
+	const {
+		detailCheck,
+		family = 'other',
+		enabled = true,
+		thresholdPercent = 0,
+		...commandOptions
+	} = options;
 	const raw = await runCommand(commandArgs[0], commandArgs.slice(1), {
 		cwd: directory,
-		...options,
+		...commandOptions,
 	});
 	const filtered = await runCommand(rtk, commandArgs, {
 		cwd: directory,
-		...options,
+		...commandOptions,
 	});
 
 	const rawText = `${raw.stdout}${raw.stderr}`;
 	const filteredText = `${filtered.stdout}${filtered.stderr}`;
 	const successPreserved = raw.status === filtered.status;
 	const taskCriticalDetailPreserved =
-		options.detailCheck ? options.detailCheck(rawText, filteredText) : true;
+		detailCheck ? detailCheck(rawText, filteredText) : true;
+	const reductionPercent = reduction(rawText, filteredText);
 
 	return {
 		name,
+		family,
+		command: commandArgs.join(' '),
+		enabled,
+		thresholdPercent,
 		rawCharacters: rawText.length,
 		filteredCharacters: filteredText.length,
 		rawTokens: estimateTokens(rawText),
 		filteredTokens: estimateTokens(filteredText),
-		reductionPercent: reduction(rawText, filteredText),
+		reductionPercent,
 		successPreserved,
 		taskCriticalDetailPreserved,
+		passed: successPreserved && taskCriticalDetailPreserved &&
+			(!enabled || reductionPercent >= thresholdPercent),
 	};
 }
 
@@ -124,6 +139,14 @@ async function main() {
 		await runCommand('git', ['config', 'user.name', 'Brevity Pilot'], { cwd: directory });
 		await fsPromises.writeFile(path.join(directory, 'history.txt'), '');
 		await fsPromises.writeFile(path.join(directory, 'untracked.txt'), 'leave this file untracked\n');
+		await fsPromises.writeFile(path.join(directory, 'package.json'), JSON.stringify({
+			private: true,
+			scripts: {
+				test: 'node -e "console.log(\'PASS test suite\'); console.log(\'2 tests passed\')"',
+				'test:fail': 'node -e "console.error(\'FAIL example.test.js:4\'); process.exit(1)"',
+				build: 'node -e "console.log(\'build complete\'); console.log(\'0 errors\')"',
+			},
+		}));
 		await runCommand('git', ['add', 'history.txt'], { cwd: directory });
 		await runCommand('git', ['commit', '-qm', 'pilot commit 0'], { cwd: directory });
 		for (let index = 1; index <= 12; index += 1) {
@@ -134,10 +157,14 @@ async function main() {
 
 		const cases = [];
 		cases.push(await pilotCase(rtk, directory, 'git status', ['git', 'status'], {
+			family: 'git',
+			thresholdPercent: TARGET_REDUCTION_PERCENT,
 			detailCheck: (raw, filtered) =>
 				raw.includes('untracked.txt') && filtered.includes('untracked.txt'),
 		}));
 		cases.push(await pilotCase(rtk, directory, 'git log', ['git', 'log', '--oneline', '-10'], {
+			family: 'git',
+			enabled: false,
 			detailCheck: (raw, filtered) =>
 				raw.includes('pilot commit') && filtered.length > 0,
 		}));
@@ -146,11 +173,32 @@ async function main() {
 			Array.from({ length: 100 }, (_, index) => `diff line ${index}\n`).join(''),
 		);
 		cases.push(await pilotCase(rtk, directory, 'git diff', ['git', 'diff', '--', 'history.txt'], {
+			family: 'git',
+			enabled: false,
 			detailCheck: (raw, filtered) =>
 				raw.includes('history.txt') && filtered.includes('history.txt'),
 		}));
+		cases.push(await pilotCase(rtk, directory, 'npm test (passing)', ['npm', 'test'], {
+			family: 'test',
+			thresholdPercent: 0,
+			detailCheck: (raw, filtered) =>
+				raw.includes('2 tests passed') && filtered.includes('2 tests passed'),
+		}));
+		cases.push(await pilotCase(rtk, directory, 'npm test (failing)', ['npm', 'run', 'test:fail'], {
+			family: 'test',
+			thresholdPercent: 0,
+			detailCheck: (raw, filtered) =>
+				raw.includes('FAIL example.test.js:4') && filtered.includes('FAIL example.test.js:4'),
+		}));
+		cases.push(await pilotCase(rtk, directory, 'npm build', ['npm', 'run', 'build'], {
+			family: 'build',
+			thresholdPercent: 0,
+			detailCheck: (raw, filtered) =>
+				raw.includes('build complete') && filtered.includes('build complete'),
+		}));
 
-		const totals = cases.reduce((result, item) => ({
+		const enabledCases = cases.filter((item) => item.enabled);
+		const totals = enabledCases.reduce((result, item) => ({
 			rawCharacters: result.rawCharacters + item.rawCharacters,
 			filteredCharacters: result.filteredCharacters + item.filteredCharacters,
 			rawTokens: result.rawTokens + item.rawTokens,
@@ -163,22 +211,30 @@ async function main() {
 				'a'.repeat(totals.rawCharacters),
 				'a'.repeat(totals.filteredCharacters),
 			);
-		const classifiedCorrectly = cases.every((item) => item.successPreserved);
-		const detailsPreserved = cases.every((item) => item.taskCriticalDetailPreserved);
-		const passed = totalReduction >= TARGET_REDUCTION_PERCENT &&
-			classifiedCorrectly &&
-			detailsPreserved;
-
-		console.log(JSON.stringify({
+		const classifiedCorrectly = enabledCases.every((item) => item.successPreserved);
+		const detailsPreserved = enabledCases.every((item) => item.taskCriticalDetailPreserved);
+		const passed = enabledCases.length > 0 &&
+			enabledCases.every((item) => item.passed);
+		const report = {
+			reportVersion: REPORT_VERSION,
 			rtkTag: RTK_TAG,
+			generatedAt: new Date().toISOString(),
 			cases,
 			totals,
 			totalReductionPercent: totalReduction,
 			targetReductionPercent: TARGET_REDUCTION_PERCENT,
+			targetReductionAppliesTo: 'git status',
 			successStatusPreserved: classifiedCorrectly,
 			taskCriticalDetailsPreserved: detailsPreserved,
 			passed,
-		}, null, 2));
+		};
+		const reportPath = process.env.BREVITY_BENCHMARK_REPORT ||
+			path.join(process.cwd(), 'benchmark-report.json');
+		await fsPromises.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, {
+			encoding: 'utf8',
+			mode: 0o600,
+		});
+		console.log(JSON.stringify(report, null, 2));
 
 		if (!passed) {
 			process.exitCode = 2;

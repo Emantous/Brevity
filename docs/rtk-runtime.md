@@ -73,6 +73,15 @@ Disabling the setting or running the disable command removes Brevity's entry.
 If no other hooks remain, Brevity removes the empty hook file. No unrelated
 Copilot configuration is deleted.
 
+## Benchmark fixtures
+
+Run `npm run benchmark:rtk` to execute deterministic Git, passing-test,
+failing-test, and build fixtures against raw and RTK-filtered output. The
+command writes a machine-readable `benchmark-report.json` containing raw and
+filtered character/token counts, exit-status preservation, task-critical
+detail checks, and per-case pass results. Set
+`BREVITY_BENCHMARK_REPORT=/path/to/report.json` to choose another output path.
+
 ## Command compression policy
 
 Brevity uses a conservative allowlist before calling RTK:

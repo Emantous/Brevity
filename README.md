@@ -122,6 +122,17 @@ npm run test:all
 
 See [Testing](docs/testing.md) for test layers and fixtures.
 
+To run the reproducible RTK benchmark fixtures:
+
+```bash
+npm run benchmark:rtk
+```
+
+This writes `benchmark-report.json` with raw and filtered character/token
+counts, exit-status preservation, task-critical detail checks, per-family
+thresholds, and an overall pass result. Set
+`BREVITY_BENCHMARK_REPORT=/path/to/report.json` to choose another output path.
+
 ## Contributing
 
 Contributions and ideas are welcome while the project takes shape. Please
