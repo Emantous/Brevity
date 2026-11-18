@@ -1,0 +1,26 @@
+{
+  "vscodeGitStatus": {
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git status"
+    }
+  },
+  "vscodeGitDiff": {
+    "tool_name": "run_in_terminal",
+    "tool_input": {
+      "command": "git diff HEAD"
+    }
+  },
+  "cliGitStatus": {
+    "toolName": "bash",
+    "toolArgs": "{\"command\":\"git status\"}"
+  },
+  "cliUnknown": {
+    "toolName": "bash",
+    "toolArgs": "{\"command\":\"curl https://example.com\"}"
+  },
+  "nonTerminal": {
+    "toolName": "view",
+    "toolArgs": "{}"
+  }
+}

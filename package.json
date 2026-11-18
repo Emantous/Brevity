@@ -70,7 +70,10 @@
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "test:unit": "node --test test/unit/*.test.js",
+    "test:smoke": "bash test/rtk-copilot-hook-smoke.sh",
+    "test:all": "npm run lint && npm run test:unit && npm test && npm run test:smoke"
   },
   "devDependencies": {
     "@types/vscode": "^1.140.0",

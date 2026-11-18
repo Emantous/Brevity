@@ -43,6 +43,15 @@ npm run lint
 npm test
 ```
 
+The testing scripts are:
+
+```bash
+npm run test:unit
+npm test
+npm run test:smoke
+npm run test:all
+```
+
 The test command runs the extension test suite and the configured lint checks.
 
 ## Extension details

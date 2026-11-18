@@ -1,0 +1,14 @@
+{
+  "gitStatusUntracked": {
+    "raw": "* No commits yet on main\n?? first.txt\n?? second.txt\n",
+    "rewritten": "* No commits yet on main\n?? first.txt\n?? second.txt\n"
+  },
+  "gitStatusClean": {
+    "raw": "On branch main\nnothing to commit, working tree clean\n",
+    "rewritten": "* main\nclean — nothing to commit\n"
+  },
+  "npmTestFailure": {
+    "raw": "3 tests failed\n",
+    "rewritten": "[rtk] Test summary: 3 failures\n"
+  }
+}

@@ -47,6 +47,27 @@ function sha256(buffer) {
 	return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
+function isTrustedDownloadRedirect(sourceUrl, redirectUrl) {
+	let source;
+	let redirect;
+	try {
+		source = new URL(sourceUrl);
+		redirect = new URL(redirectUrl);
+	} catch {
+		return false;
+	}
+	if (redirect.protocol !== 'https:') {
+		return false;
+	}
+	if (source.hostname === 'github.com') {
+		return redirect.hostname === 'release-assets.githubusercontent.com';
+	}
+	if (source.hostname === 'release-assets.githubusercontent.com') {
+		return redirect.hostname === 'release-assets.githubusercontent.com';
+	}
+	return false;
+}
+
 function parseChecksums(text) {
 	const checksums = new Map();
 	for (const line of text.split(/\r?\n/)) {
@@ -94,7 +115,12 @@ function downloadUrl(url, { timeoutMs = DOWNLOAD_TIMEOUT_MS, redirectCount = 0 }
 		const request = protocol.get(url, { headers: { 'User-Agent': 'Brevity-VSCode' } }, (response) => {
 			if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
 				response.resume();
-				resolve(downloadUrl(new URL(response.headers.location, url).toString(), {
+				const redirectUrl = new URL(response.headers.location, url).toString();
+				if (!isTrustedDownloadRedirect(url, redirectUrl)) {
+					reject(new Error('RTK download redirect is not trusted'));
+					return;
+				}
+				resolve(downloadUrl(redirectUrl, {
 					timeoutMs,
 					redirectCount: redirectCount + 1,
 				}));
@@ -339,4 +365,5 @@ module.exports = {
 	safeFileName,
 	PINNED_ARCHIVE_SHA256,
 	downloadUrl,
+	isTrustedDownloadRedirect,
 };
