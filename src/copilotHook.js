@@ -77,9 +77,11 @@ function isRewriteResponse(response) {
 	if (!response || typeof response !== 'object') {
 		return false;
 	}
+	const hookOutput = response.hookSpecificOutput || response.hook_specific_output;
 	const updatedInput = response.updatedInput ||
-		(response.hookSpecificOutput && response.hookSpecificOutput.updatedInput);
-	const modifiedArgs = response.modifiedArgs;
+		response.updated_input ||
+		(hookOutput && (hookOutput.updatedInput || hookOutput.updated_input));
+	const modifiedArgs = response.modifiedArgs || response.modified_args;
 	return Boolean(
 		updatedInput && typeof updatedInput.command === 'string' ||
 		modifiedArgs && typeof modifiedArgs.command === 'string',
@@ -157,9 +159,13 @@ async function main() {
 
 	const result = runRtkHookResult(rtkExecutable, input);
 	if (result.reason === 'rewritten') {
-		const rewrittenCommand = result.response.updatedInput?.command ||
-			result.response.hookSpecificOutput?.updatedInput?.command ||
-			result.response.modifiedArgs?.command || '';
+		const hookOutput = result.response.hookSpecificOutput || result.response.hook_specific_output;
+		const updatedInput = result.response.updatedInput ||
+			result.response.updated_input ||
+			hookOutput?.updatedInput ||
+			hookOutput?.updated_input;
+		const modifiedArgs = result.response.modifiedArgs || result.response.modified_args;
+		const rewrittenCommand = updatedInput?.command || modifiedArgs?.command || '';
 		await recordMetric(metricsFilePath, 'rewrites', {
 			inputCharacters: command.length,
 			rewrittenCharacters: rewrittenCommand.length,

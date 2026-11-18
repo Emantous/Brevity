@@ -169,6 +169,10 @@ test('RTK hook preserves valid rewrite envelopes and fails open safely', () => {
 
 	assert.equal(isRewriteResponse(JSON.parse(vscodeResponse)), true);
 	assert.equal(isRewriteResponse(JSON.parse(cliResponse)), true);
+	assert.equal(isRewriteResponse({
+		hook_specific_output: { updated_input: { command: 'rtk git status' } },
+	}), true);
+	assert.equal(isRewriteResponse({ modified_args: { command: 'rtk git status' } }), true);
 	assert.equal(isRewriteResponse({}), false);
 	assert.equal(isRewriteResponse({ modifiedArgs: { command: 42 } }), false);
 
