@@ -112,6 +112,7 @@ Additional guides:
 - [User guide](docs/user-guide.md)
 - [Administrator guide](docs/administrator-guide.md)
 - [Contributor guide](docs/contributor-guide.md)
+- [Architecture contract](docs/architecture-contract.md)
 
 ## Development
 
