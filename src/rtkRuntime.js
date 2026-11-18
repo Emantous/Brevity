@@ -22,6 +22,13 @@ const PINNED_ARCHIVE_SHA256 = {
 	'rtk-oss-x86_64-unknown-linux-musl.tar.gz': '5dc4110f886e9b47e9380d3028d75ec266666bc70747f5aaf78572d8d2a48d71',
 };
 
+function isWslEnvironment(platform = process.platform, environment = process.env) {
+	return platform === 'linux' && (
+		typeof environment.WSL_INTEROP === 'string' ||
+		typeof environment.WSL_DISTRO_NAME === 'string'
+	);
+}
+
 function resolveRtkAsset(platform = process.platform, architecture = process.arch) {
 	const targets = {
 		'linux:x64': 'rtk-oss-x86_64-unknown-linux-musl.tar.gz',
@@ -364,6 +371,7 @@ module.exports = {
 	RTK_TAG,
 	RTK_BINARY_VERSION,
 	resolveRtkAsset,
+	isWslEnvironment,
 	parseChecksums,
 	sha256,
 	safeFileName,

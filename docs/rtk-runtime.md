@@ -28,6 +28,10 @@ The runtime currently resolves:
 Windows arm64 and unsupported operating systems fail open. They are reported
 in the Brevity output channel and RTK setup status.
 
+WSL uses the Linux asset from the WSL extension context. Windows arm64 remains
+unsupported until an independently pinned upstream asset is available; no
+host binary is copied across execution contexts.
+
 ## Installation behavior
 
 Brevity downloads RTK after VS Code startup when `brevity.rtk.enabled` is true.

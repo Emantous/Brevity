@@ -6,6 +6,7 @@ const path = require('node:path');
 const {
 	RtkRuntimeManager,
 	resolveRtkAsset,
+	isWslEnvironment,
 	PINNED_ARCHIVE_SHA256,
 	safeFileName,
 	sha256,
@@ -26,6 +27,9 @@ test('supported platform assets resolve to pinned hashes', () => {
 	}
 	assert.equal(resolveRtkAsset('freebsd', 'x64'), null);
 	assert.equal(resolveRtkAsset('win32', 'arm64'), null);
+	assert.equal(isWslEnvironment('linux', { WSL_INTEROP: '/run/WSL' }), true);
+	assert.equal(isWslEnvironment('linux', {}), false);
+	assert.equal(isWslEnvironment('win32', { WSL_INTEROP: '/run/WSL' }), false);
 });
 
 test('unsafe archive paths are rejected', () => {
