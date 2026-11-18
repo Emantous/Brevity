@@ -46,6 +46,25 @@ function getCommand(payload) {
 	return null;
 }
 
+function sanitizedEnvironment(source = process.env) {
+	const keys = [
+		'HOME',
+		'USERPROFILE',
+		'SYSTEMROOT',
+		'COMSPEC',
+		'PATHEXT',
+		'TEMP',
+		'TMP',
+	];
+	const environment = {};
+	for (const key of keys) {
+		if (typeof source[key] === 'string') {
+			environment[key] = source[key];
+		}
+	}
+	return environment;
+}
+
 async function main() {
 	const rtkExecutable = process.argv[2];
 	const policyFile = process.argv[3];
@@ -87,6 +106,7 @@ async function main() {
 		encoding: 'utf8',
 		timeout: 5_000,
 		maxBuffer: 1_048_576,
+		env: sanitizedEnvironment(),
 	});
 
 	if (result.error || result.status !== 0) {
@@ -95,4 +115,11 @@ async function main() {
 	process.stdout.write(result.stdout || '');
 }
 
-main().catch(() => process.exit(0));
+if (require.main === module) {
+	main().catch(() => process.exit(0));
+}
+
+module.exports = {
+	getCommand,
+	sanitizedEnvironment,
+};

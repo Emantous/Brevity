@@ -101,3 +101,24 @@ If a download, checksum, extraction, cache, or archive version check fails,
 Brevity records the failure in the output channel and shows a status message.
 Runtime setup never modifies the user's PATH and does not block command
 execution. Unsupported or failed setup leaves commands unchanged.
+
+## Security boundaries
+
+RTK archives are pinned to immutable SHA-256 digests for this RTK release.
+Brevity refuses the download unless the archive hash matches the digest
+embedded in the extension. Downloads and redirects must use HTTPS.
+
+The Copilot hook wrapper passes only a small allowlist of operating-system
+environment variables to RTK. Secret-bearing variables such as GitHub tokens
+and API keys are not inherited by the hook subprocess.
+
+The wrapper uses argument arrays rather than shell interpolation for the RTK
+process and fails open if RTK times out, exits unexpectedly, or returns no
+valid hook response.
+
+## Privacy statement
+
+Brevity sends no command text, source content, file paths, environment
+variables, or hook payloads to Brevity-operated telemetry. RTK's command
+tracking is local to the user's machine. Brevity reports only coarse status
+messages such as runtime ready, runtime unavailable, or checksum failure.

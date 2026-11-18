@@ -15,6 +15,8 @@ const {
 	isBrevityEntry,
 } = require('../src/copilotHookManager');
 const { isBrevityAllowedCommand } = require('../src/copilotPolicy');
+const { sanitizedEnvironment } = require('../src/copilotHook');
+const { PINNED_ARCHIVE_SHA256 } = require('../src/rtkRuntime');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const os = require('os');
@@ -119,5 +121,25 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(isBrevityAllowedCommand('git status', {
 			excludePatterns: ['git status'],
 		}), false);
+	});
+
+	test('RTK downloads require HTTPS and use immutable release hashes', async () => {
+		const { downloadUrl } = require('../src/rtkRuntime');
+		await assert.rejects(() => downloadUrl('http://example.com/rtk'), /HTTPS/);
+		assert.strictEqual(
+			PINNED_ARCHIVE_SHA256['rtk-oss-x86_64-unknown-linux-musl.tar.gz'],
+			'5dc4110f886e9b47e9380d3028d75ec266666bc70747f5aaf78572d8d2a48d71',
+		);
+	});
+
+	test('RTK hook subprocess does not inherit secret-bearing environment variables', () => {
+		const environment = sanitizedEnvironment({
+			HOME: '/tmp/test-home',
+			GITHUB_TOKEN: 'secret',
+			ANTHROPIC_API_KEY: 'secret',
+		});
+		assert.strictEqual(environment.HOME, '/tmp/test-home');
+		assert.strictEqual(environment.GITHUB_TOKEN, undefined);
+		assert.strictEqual(environment.ANTHROPIC_API_KEY, undefined);
 	});
 });

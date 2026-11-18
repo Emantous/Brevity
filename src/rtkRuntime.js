@@ -1,7 +1,6 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const fsPromises = fs.promises;
-const http = require('http');
 const https = require('https');
 const os = require('os');
 const path = require('path');
@@ -14,6 +13,13 @@ const BASE_URL = `https://github.com/rtk-ai/rtk/releases/download/${RTK_TAG}`;
 const DOWNLOAD_TIMEOUT_MS = 30_000;
 const MAX_ARCHIVE_BYTES = 30 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
+const PINNED_ARCHIVE_SHA256 = {
+	'rtk-oss-aarch64-apple-darwin.tar.gz': '96618ed5ad7f3ddedbd6d1112aa6f2bfce598e4bc9ba7978d2c2ebbba687c9d8',
+	'rtk-oss-aarch64-unknown-linux-musl.tar.gz': '3b7aecdc17276a9d96299a8d250f90503690e9f65d600d10e48303ac6c928c24',
+	'rtk-oss-x86_64-apple-darwin.tar.gz': '49ab11517f0ad96b148080201034ad605a6f20b111a8c1233196eab78072e698',
+	'rtk-oss-x86_64-pc-windows-msvc.zip': 'ed66e10701a5d8e50b890fe28c43c7d0a2267d090b9579ab634b8a2ce1ea220c',
+	'rtk-oss-x86_64-unknown-linux-musl.tar.gz': '5dc4110f886e9b47e9380d3028d75ec266666bc70747f5aaf78572d8d2a48d71',
+};
 
 function resolveRtkAsset(platform = process.platform, architecture = process.arch) {
 	const targets = {
@@ -33,6 +39,7 @@ function resolveRtkAsset(platform = process.platform, architecture = process.arc
 		asset,
 		executableName: platform === 'win32' ? 'rtk.exe' : 'rtk',
 		archiveType: asset.endsWith('.zip') ? 'zip' : 'tar',
+		sha256: PINNED_ARCHIVE_SHA256[asset],
 	};
 }
 
@@ -71,7 +78,19 @@ function downloadUrl(url, { timeoutMs = DOWNLOAD_TIMEOUT_MS, redirectCount = 0 }
 			return;
 	}
 
-		const protocol = url.startsWith('https:') ? https : http;
+	let parsedUrl;
+	try {
+		parsedUrl = new URL(url);
+	} catch {
+		reject(new Error('Invalid RTK download URL'));
+		return;
+	}
+	if (parsedUrl.protocol !== 'https:') {
+		reject(new Error('RTK downloads must use HTTPS'));
+		return;
+	}
+
+	const protocol = https;
 		const request = protocol.get(url, { headers: { 'User-Agent': 'Brevity-VSCode' } }, (response) => {
 			if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
 				response.resume();
@@ -219,19 +238,15 @@ class RtkRuntimeManager {
 		}
 
 		let archive;
-		let checksumText;
 		try {
-			[archive, checksumText] = await Promise.all([
-				this.downloadWithRetry(`${BASE_URL}/${this.asset.asset}`),
-				this.downloadWithRetry(`${BASE_URL}/checksums.txt`),
-			]);
+			archive = await this.downloadWithRetry(`${BASE_URL}/${this.asset.asset}`);
 		} catch (error) {
 			const message = `RTK setup failed: ${error.message}. Brevity will pass commands through unchanged.`;
 			this.output(message);
 			return { ok: false, message };
 		}
 
-		const checksum = parseChecksums(checksumText.toString('utf8')).get(this.asset.asset);
+		const checksum = this.asset.sha256;
 		if (!checksum || sha256(archive) !== checksum) {
 			const message = 'RTK setup failed: archive checksum mismatch. Brevity will pass commands through unchanged.';
 			this.output(message);
@@ -322,4 +337,6 @@ module.exports = {
 	parseChecksums,
 	sha256,
 	safeFileName,
+	PINNED_ARCHIVE_SHA256,
+	downloadUrl,
 };
