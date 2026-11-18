@@ -23,6 +23,14 @@ test('Copilot payload fixtures produce command strings', async () => {
 	assert.equal(getCommand(fixtures.cliGitStatus), 'git status');
 	assert.equal(getCommand(fixtures.cliUnknown), 'curl https://example.com');
 	assert.equal(getCommand(fixtures.nonTerminal), null);
+	assert.equal(getCommand({
+		ToolName: 'terminal',
+		ToolArgs: { command: 'git status' },
+	}), 'git status');
+	assert.equal(getCommand({
+		toolName: 'bash',
+		toolInput: JSON.stringify({ command: 'git status' }),
+	}), 'git status');
 });
 
 test('allowlist supports read and build commands conservatively', () => {

@@ -22,22 +22,28 @@ function readPayload() {
 }
 
 function getCommand(payload) {
-	if (payload.tool_name && payload.tool_input && typeof payload.tool_input.command === 'string') {
-		return payload.tool_input.command;
-	}
-	if (payload.toolName && typeof payload.toolArgs === 'string') {
-		try {
-			const args = JSON.parse(payload.toolArgs);
-			if (typeof args.command === 'string') {
-				return args.command;
-			}
-		} catch {
-			return null;
+	const directInputs = [
+		payload.tool_input,
+		payload.toolInput,
+		payload.tool_args,
+		payload.toolArgs,
+		payload.ToolArgs,
+		payload.ToolInput,
+		payload.arguments,
+		payload.input,
+	];
+	for (const input of directInputs) {
+		if (input && typeof input === 'object' && typeof input.command === 'string') {
+			return input.command;
 		}
 	}
-	if (payload.toolName === 'run_in_terminal' && typeof payload.toolArgs === 'string') {
+
+	for (const input of directInputs) {
+		if (typeof input !== 'string') {
+			continue;
+		}
 		try {
-			const args = JSON.parse(payload.toolArgs);
+			const args = JSON.parse(input);
 			if (typeof args.command === 'string') {
 				return args.command;
 			}
