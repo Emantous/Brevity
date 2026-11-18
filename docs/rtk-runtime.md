@@ -81,6 +81,9 @@ command writes a machine-readable `benchmark-report.json` containing raw and
 filtered character/token counts, exit-status preservation, task-critical
 detail checks, and per-case pass results. Set
 `BREVITY_BENCHMARK_REPORT=/path/to/report.json` to choose another output path.
+Maintainers can use `npm run benchmark:final` for the real repository workload;
+that report omits command text and records aggregate results plus anonymized
+failure categories.
 
 ## Command compression policy
 

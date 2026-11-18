@@ -127,6 +127,7 @@ async function pilotCase(rtk, directory, name, commandArgs, options = {}) {
 }
 
 async function main() {
+	const realWorkload = process.argv.includes('--real');
 	if (process.platform === 'win32') {
 		throw new Error('The first pilot report is intended for tar-based Linux or macOS hosts');
 	}
@@ -196,6 +197,27 @@ async function main() {
 			detailCheck: (raw, filtered) =>
 				raw.includes('build complete') && filtered.includes('build complete'),
 		}));
+		if (realWorkload) {
+			const realDirectory = process.cwd();
+			cases.push(await pilotCase(rtk, realDirectory, 'repository git status', ['git', 'status', '--short'], {
+				family: 'git',
+				thresholdPercent: 0,
+			}));
+			cases.push(await pilotCase(rtk, realDirectory, 'repository lint', ['npm', 'run', 'lint'], {
+				family: 'test',
+				thresholdPercent: 0,
+			}));
+			cases.push(await pilotCase(rtk, realDirectory, 'repository unit tests', ['npm', 'run', 'test:unit'], {
+				family: 'test',
+				thresholdPercent: 0,
+			}));
+			cases.push(await pilotCase(rtk, realDirectory, 'repository VSIX package', [
+				'npm', 'run', 'package', '--', '--out', path.join(os.tmpdir(), 'brevity-benchmark.vsix'),
+			], {
+				family: 'package',
+				thresholdPercent: 0,
+			}));
+		}
 
 		const enabledCases = cases.filter((item) => item.enabled);
 		const totals = enabledCases.reduce((result, item) => ({
@@ -219,6 +241,7 @@ async function main() {
 			reportVersion: REPORT_VERSION,
 			rtkTag: RTK_TAG,
 			generatedAt: new Date().toISOString(),
+			mode: realWorkload ? 'real-workload' : 'fixtures',
 			cases,
 			totals,
 			totalReductionPercent: totalReduction,
@@ -228,8 +251,20 @@ async function main() {
 			taskCriticalDetailsPreserved: detailsPreserved,
 			passed,
 		};
+		if (realWorkload) {
+			report.cases = report.cases.map((item) => {
+				const publicCase = { ...item };
+				delete publicCase.command;
+				publicCase.failureCategory = item.successPreserved
+					? item.taskCriticalDetailPreserved
+						? item.passed ? 'none' : 'insufficient_reduction'
+						: 'task_critical_detail_loss'
+					: 'status_mismatch';
+				return publicCase;
+			});
+		}
 		const reportPath = process.env.BREVITY_BENCHMARK_REPORT ||
-			path.join(process.cwd(), 'benchmark-report.json');
+			path.join(process.cwd(), realWorkload ? 'final-benchmark-report.json' : 'benchmark-report.json');
 		await fsPromises.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, {
 			encoding: 'utf8',
 			mode: 0o600,

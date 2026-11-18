@@ -114,6 +114,7 @@
     "test:smoke": "bash test/rtk-copilot-hook-smoke.sh",
     "pilot": "node scripts/rtk-pilot.js",
     "benchmark:rtk": "node scripts/rtk-pilot.js",
+    "benchmark:final": "node scripts/rtk-pilot.js --real",
     "test:all": "npm run lint && npm run test:unit && npm test && npm run test:smoke",
     "package": "vsce package",
     "package:check": "node scripts/check-vsix-contents.js"

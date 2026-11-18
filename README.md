@@ -143,6 +143,11 @@ counts, exit-status preservation, task-critical detail checks, per-family
 thresholds, and an overall pass result. Set
 `BREVITY_BENCHMARK_REPORT=/path/to/report.json` to choose another output path.
 
+Maintainers can run `npm run benchmark:final` to exercise the repository's
+real Git, lint, unit-test, and VSIX packaging workload. Its
+`final-benchmark-report.json` omits command text and records only aggregate
+counts and anonymized failure categories.
+
 ## Contributing
 
 Contributions and ideas are welcome while the project takes shape. Please
