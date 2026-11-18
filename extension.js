@@ -8,6 +8,7 @@ const { CopilotHookManager } = require('./src/copilotHookManager');
 const { formatStatus, countSupportedCommands } = require('./src/uxStatus');
 const { clearMetrics, readMetrics, summarizeMetrics } = require('./src/metrics');
 const { migratePolicy } = require('./src/migrations');
+const { getExecutionContext } = require('./src/executionContext');
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -33,6 +34,10 @@ function activate(context) {
 		storageDir: context.globalStorageUri.fsPath,
 		output: (message) => output.appendLine(message),
 	});
+	const executionContext = getExecutionContext({
+		remoteName: vscode.env.remoteName,
+		platform: process.platform,
+	});
 
 	async function showRuntimeStatus() {
 		const status = await manager.status();
@@ -53,7 +58,7 @@ function activate(context) {
 				? `Hook installed: ${item.hookPath}`
 				: `Hook not installed: ${item.hookPath}`).join('\n');
 		vscode.window.showInformationMessage(
-			`${status.message}\nRuntime source: managed RTK ${RTK_TAG}\nIntegrity: ${status.ready ? 'verified' : 'unknown'}\n${hookMessage}\nSupported command families: ${supportedCount}\nMetrics: ${summarizeMetrics(readMetrics(metricsFilePath))}`,
+			`${status.message}\nExecution context: ${executionContext.kind}${executionContext.remoteName ? ` (${executionContext.remoteName})` : ''}\nRuntime source: managed RTK ${RTK_TAG}\nIntegrity: ${status.ready ? 'verified' : 'unknown'}\n${hookMessage}\nSupported command families: ${supportedCount}\nMetrics: ${summarizeMetrics(readMetrics(metricsFilePath))}`,
 		);
 	}
 

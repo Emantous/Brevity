@@ -32,6 +32,12 @@ WSL uses the Linux asset from the WSL extension context. Windows arm64 remains
 unsupported until an independently pinned upstream asset is available; no
 host binary is copied across execution contexts.
 
+For Remote-SSH, Dev Containers, and WSL, the extension host downloads and
+executes RTK in that remote context. Hook paths are resolved from the remote
+workspace folders, and status output identifies the active execution context.
+Reconnects and container rebuilds safely re-run normal runtime setup when the
+remote extension host activates again.
+
 ## Installation behavior
 
 Brevity downloads RTK after VS Code startup when `brevity.rtk.enabled` is true.
