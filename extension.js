@@ -61,6 +61,11 @@ function activate(context) {
 
 	const enableDisposable = vscode.commands.registerCommand('brevity.rtkEnable', async function () {
 		await vscode.workspace.getConfiguration('brevity').update(
+			'rtk.killSwitch',
+			false,
+			vscode.ConfigurationTarget.Global,
+		);
+		await vscode.workspace.getConfiguration('brevity').update(
 			'rtk.enabled',
 			true,
 			vscode.ConfigurationTarget.Global,
@@ -68,6 +73,27 @@ function activate(context) {
 		await prepareRuntime();
 		vscode.window.showInformationMessage('Brevity RTK is enabled.');
 	});
+
+	const emergencyDisableDisposable = vscode.commands.registerCommand(
+		'brevity.rtkEmergencyDisable',
+		async function () {
+			await vscode.workspace.getConfiguration('brevity').update(
+				'rtk.killSwitch',
+				true,
+				vscode.ConfigurationTarget.Global,
+			);
+			await vscode.workspace.getConfiguration('brevity').update(
+				'rtk.enabled',
+				false,
+				vscode.ConfigurationTarget.Global,
+			);
+			await createHookManager(manager.executablePath).uninstall();
+			updateStatusBar(false, false, 0);
+			vscode.window.showWarningMessage(
+				'Brevity RTK emergency disable is active. Clear brevity.rtk.killSwitch before enabling it again.',
+			);
+		},
+	);
 
 	const metricsDisposable = vscode.commands.registerCommand('brevity.rtkMetrics', function () {
 		vscode.window.showInformationMessage(`Brevity local metrics: ${summarizeMetrics(readMetrics(metricsFilePath))}`);
@@ -125,6 +151,7 @@ function activate(context) {
 		helloDisposable,
 		statusDisposable,
 		enableDisposable,
+		emergencyDisableDisposable,
 		metricsDisposable,
 		clearMetricsDisposable,
 		retryDisposable,
@@ -159,7 +186,11 @@ function activate(context) {
 	}
 
 	async function prepareRuntime() {
-		if (!vscode.workspace.getConfiguration('brevity').get('rtk.enabled', true)) {
+		const configuration = vscode.workspace.getConfiguration('brevity');
+		if (
+			configuration.get('rtk.killSwitch', false) ||
+			!configuration.get('rtk.enabled', true)
+		) {
 			updateStatusBar(false, false, 0);
 			return;
 		}
@@ -208,16 +239,22 @@ function activate(context) {
 	const settingDisposable = vscode.workspace.onDidChangeConfiguration(async (event) => {
 		if (
 			!event.affectsConfiguration('brevity.rtk.enabled') &&
+			!event.affectsConfiguration('brevity.rtk.killSwitch') &&
 			!event.affectsConfiguration('brevity.rtk.commands.allowlist') &&
 			!event.affectsConfiguration('brevity.rtk.commands.excludePatterns') &&
 			!event.affectsConfiguration('brevity.rtk.commands.overrides')
 		) {
 			return;
 		}
-		if (vscode.workspace.getConfiguration('brevity').get('rtk.enabled', true)) {
+		const configuration = vscode.workspace.getConfiguration('brevity');
+		if (
+			configuration.get('rtk.enabled', true) &&
+			!configuration.get('rtk.killSwitch', false)
+		) {
 			await prepareRuntime();
 		} else {
 			await createHookManager(manager.executablePath).uninstall();
+			updateStatusBar(false, false, 0);
 		}
 	});
 	context.subscriptions.push(settingDisposable);

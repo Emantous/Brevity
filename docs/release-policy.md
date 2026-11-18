@@ -5,6 +5,13 @@
 The managed RTK runtime is controlled by `brevity.rtk.enabled`, defaulting to
 true. Release in stages:
 
+Operational rollout uses the local `brevity.rtk.rolloutStage` label:
+`preview`, `staged`, or `general`. If a release must be stopped immediately,
+set `brevity.rtk.killSwitch` to true or run **Brevity: Emergency Disable RTK**.
+This disables rewriting and removes Brevity-owned hook entries without
+removing unrelated Copilot configuration. Clear the kill switch before using
+**Brevity: Enable RTK** again. Release in stages:
+
 1. Run the combined test pipeline and package checks.
 2. Publish the extension update.
 3. Monitor runtime setup, checksum, hook, timeout, and VSIX failures.

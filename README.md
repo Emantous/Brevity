@@ -63,6 +63,9 @@ The bypass is also useful if a filtered result appears incomplete.
 ## Settings
 
 - `brevity.rtk.enabled` — enable or disable Brevity.
+- `brevity.rtk.killSwitch` — emergency disable that removes the Brevity hook.
+- `brevity.rtk.rolloutStage` — local rollout label: `preview`, `staged`, or
+  `general`.
 - `brevity.rtk.commands.allowlist` — command families Brevity may handle.
 - `brevity.rtk.commands.excludePatterns` — exact prefixes or regular expressions
   beginning with `^` that must remain unchanged.
@@ -74,6 +77,7 @@ The bypass is also useful if a filtered result appears incomplete.
 | --- | --- |
 | Brevity: Show RTK Runtime Status | Show runtime and hook status |
 | Brevity: Enable RTK | Enable Brevity and reinitialize RTK |
+| Brevity: Emergency Disable RTK | Immediately stop rewriting and remove the hook |
 | Brevity: Retry RTK Runtime Setup | Download or reinitialize RTK |
 | Brevity: Disable RTK and Remove Copilot Hook | Disable Brevity and remove its hook |
 | Brevity: Uninstall Managed RTK Runtime | Remove the hook and cached runtime |
