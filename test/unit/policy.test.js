@@ -28,8 +28,6 @@ test('Copilot payload fixtures produce command strings', async () => {
 test('allowlist supports read and build commands conservatively', () => {
 	for (const command of [
 		'git status',
-		'git diff HEAD',
-		'git log -10',
 		'npm test',
 		'pnpm run build',
 		'yarn test',
@@ -39,6 +37,12 @@ test('allowlist supports read and build commands conservatively', () => {
 	]) {
 		assert.equal(isBrevityAllowedCommand(command), true, command);
 	}
+	assert.equal(isBrevityAllowedCommand('git status'), true);
+	assert.equal(isBrevityAllowedCommand('git diff HEAD'), false);
+	assert.equal(isBrevityAllowedCommand('git diff HEAD', {
+		commandOverrides: { 'git diff': true },
+	}), true);
+	assert.equal(isBrevityAllowedCommand('git log -10'), false);
 
 	for (const command of [
 		'git rebase -i HEAD~2',

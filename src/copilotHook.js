@@ -131,6 +131,7 @@ async function main() {
 	if (!isBrevityAllowedCommand(command, {
 		allowlist: policy.allowlist,
 		excludePatterns: policy.excludePatterns,
+		commandOverrides: policy.commandOverrides,
 	})) {
 		process.exit(0);
 	}

@@ -139,7 +139,10 @@ suite('Extension Test Suite', () => {
 
 	test('Compression policy allows only conservative read and build commands', () => {
 		assert.strictEqual(isBrevityAllowedCommand('git status'), true);
-		assert.strictEqual(isBrevityAllowedCommand('git diff HEAD'), true);
+		assert.strictEqual(isBrevityAllowedCommand('git diff HEAD'), false);
+		assert.strictEqual(isBrevityAllowedCommand('git diff HEAD', {
+			commandOverrides: { 'git diff': true },
+		}), true);
 		assert.strictEqual(isBrevityAllowedCommand('npm test'), true);
 		assert.strictEqual(isBrevityAllowedCommand('cargo clippy'), true);
 		assert.strictEqual(isBrevityAllowedCommand('git rebase -i HEAD~2'), false);

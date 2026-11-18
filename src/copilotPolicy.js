@@ -12,8 +12,24 @@ const GIT_SAFE_SUBCOMMANDS = new Set([
 	'log',
 	'branch',
 	'show',
+	'blame',
+	'grep',
+	'worktree',
+	'reflog',
 	'stats',
 ]);
+const DEFAULT_GIT_COMMAND_OVERRIDES = {
+	'git status': true,
+	'git diff': false,
+	'git log': false,
+	'git branch': false,
+	'git show': false,
+	'git blame': false,
+	'git grep': false,
+	'git worktree': false,
+	'git reflog': false,
+	'git stats': false,
+};
 
 const BUILD_SUBCOMMANDS = new Set([
 	'test',
@@ -202,6 +218,16 @@ function hasDangerousIntent(parsed) {
 		SENSITIVE_ARGUMENT_PATTERN.test(value));
 }
 
+function commandKey(parsed) {
+	return `${parsed.executable} ${parsed.subcommand || ''}`.trim();
+}
+
+function isCommandEnabled(parsed, overrides = {}) {
+	const key = commandKey(parsed);
+	const configured = { ...DEFAULT_GIT_COMMAND_OVERRIDES, ...overrides };
+	return configured[key] === true;
+}
+
 function matchesPattern(command, patterns = []) {
 	const stripped = stripEnvironmentPrefixes(command);
 	return patterns.some((pattern) => {
@@ -244,7 +270,8 @@ function isBrevityAllowedCommand(command, options = {}) {
 	}
 
 	if (parsed.executable === 'git') {
-		return GIT_SAFE_SUBCOMMANDS.has(parsed.subcommand);
+		return GIT_SAFE_SUBCOMMANDS.has(parsed.subcommand) &&
+			isCommandEnabled(parsed, options.commandOverrides);
 	}
 	if (parsed.executable === 'cargo') {
 		return BUILD_SUBCOMMANDS.has(parsed.subcommand);
@@ -261,8 +288,10 @@ module.exports = {
 	DEFAULT_COMMAND_ALLOWLIST,
 	GIT_SAFE_SUBCOMMANDS,
 	BUILD_SUBCOMMANDS,
+	DEFAULT_GIT_COMMAND_OVERRIDES,
 	hasDangerousIntent,
 	extractCommand,
+	isCommandEnabled,
 	parseCommand,
 	matchesPattern,
 	isBrevityAllowedCommand,

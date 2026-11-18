@@ -36,13 +36,13 @@ details.
 
 Brevity initially compresses:
 
-- Git read/status commands such as `git status`, `git diff`, `git log`,
-  `git branch`, `git show`, and `git stats`
+- Measured Git status output through `git status`
 - Common npm, pnpm, and yarn test/run/build/list commands
 - Common cargo test/build/check/clippy/nextest commands
 
-Unknown commands and shell-sensitive commands pass through unchanged.
-Mutating Git commands are not included in the initial allowlist.
+Unknown, shell-sensitive, and unmeasured Git commands pass through unchanged.
+Additional Git filters can be enabled individually with measured command
+overrides, such as `{"git diff": true}`.
 
 ## Raw output
 

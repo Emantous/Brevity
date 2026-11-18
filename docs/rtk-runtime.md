@@ -76,7 +76,7 @@ Copilot configuration is deleted.
 
 Brevity uses a conservative allowlist before calling RTK:
 
-- `git status`, `git diff`, `git log`, `git branch`, `git show`, and `git stats`
+- measured `git status` output by default
 - `npm`, `pnpm`, and `yarn` test/run/build/list-style commands
 - `cargo` test/build/check/clippy/nextest commands
 
@@ -84,9 +84,12 @@ The settings:
 
 - `brevity.rtk.commands.allowlist`
 - `brevity.rtk.commands.excludePatterns`
+- `brevity.rtk.commands.overrides`
 
 control this policy. An exclusion may be an exact command prefix or a regular
-expression beginning with `^`.
+expression beginning with `^`. Git filters that have not met the measured
+savings threshold remain disabled unless explicitly enabled with an override,
+for example `{"git diff": true}`.
 
 Unknown commands, commands containing shell operators, heredocs, redirections,
 commands using `sudo`, and explicit `rtk bypass` commands pass through without

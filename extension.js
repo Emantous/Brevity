@@ -147,6 +147,9 @@ function activate(context) {
 					excludePatterns: vscode.workspace
 						.getConfiguration('brevity')
 						.get('rtk.commands.excludePatterns', []),
+					commandOverrides: vscode.workspace
+						.getConfiguration('brevity')
+						.get('rtk.commands.overrides', {}),
 				}, null, 2),
 				{ encoding: 'utf8', mode: 0o600 },
 			);
@@ -166,7 +169,8 @@ function activate(context) {
 		if (
 			!event.affectsConfiguration('brevity.rtk.enabled') &&
 			!event.affectsConfiguration('brevity.rtk.commands.allowlist') &&
-			!event.affectsConfiguration('brevity.rtk.commands.excludePatterns')
+			!event.affectsConfiguration('brevity.rtk.commands.excludePatterns') &&
+			!event.affectsConfiguration('brevity.rtk.commands.overrides')
 		) {
 			return;
 		}
