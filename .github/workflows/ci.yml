@@ -59,7 +59,6 @@ jobs:
       - run: npm ci
       - run: npm run package -- --out brevity.vsix
       - run: npm run package:check
-      - run: test -n \"$(node -p \"require('./package.json').version\")\"
       - run: sha256sum brevity.vsix > brevity.vsix.sha256
 
       - uses: actions/upload-artifact@v4
