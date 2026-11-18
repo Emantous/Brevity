@@ -137,6 +137,28 @@ suite('Extension Test Suite', () => {
 		await fsPromises.rm(workspace, { recursive: true, force: true });
 	});
 
+	test('Copilot hook rejects symlinked hook files', async () => {
+		const workspace = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'brevity-hook-symlink-test-'));
+		const hookDirectory = path.join(workspace, '.github', 'hooks');
+		const targetPath = path.join(workspace, 'outside.json');
+		const hookPath = path.join(hookDirectory, 'rtk-rewrite.json');
+		await fsPromises.mkdir(hookDirectory, { recursive: true });
+		await fsPromises.writeFile(targetPath, JSON.stringify({ secret: 'do-not-copy' }));
+		await fsPromises.symlink(targetPath, hookPath);
+
+		const manager = new CopilotHookManager({
+			workspaceFolders: [workspace],
+			executablePath: path.join(workspace, 'rtk'),
+			nodeExecutablePath: process.execPath,
+			hookScriptPath: path.join(workspace, 'copilotHook.js'),
+			policyFilePath: path.join(workspace, 'policy.json'),
+		});
+
+		await assert.rejects(() => manager.install(), /Refusing symlinked Copilot hook path/);
+		assert.strictEqual(await fsPromises.readFile(targetPath, 'utf8'), JSON.stringify({ secret: 'do-not-copy' }));
+		await fsPromises.rm(workspace, { recursive: true, force: true });
+	});
+
 	test('Compression policy allows only conservative read and build commands', () => {
 		assert.strictEqual(isBrevityAllowedCommand('git status'), true);
 		assert.strictEqual(isBrevityAllowedCommand('git diff HEAD'), false);

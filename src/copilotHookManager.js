@@ -14,6 +14,35 @@ function powershellQuote(value) {
 	return `'${value.replace(/'/g, "''")}'`;
 }
 
+async function assertNoSymlinkPath(hookPath) {
+	const workspacePath = path.dirname(path.dirname(path.dirname(hookPath)));
+	const relativePath = path.relative(workspacePath, hookPath);
+	if (!relativePath || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
+		throw new Error(`Refusing unsafe Copilot hook path: ${hookPath}`);
+	}
+
+	const workspaceStat = await fsPromises.lstat(workspacePath);
+	if (workspaceStat.isSymbolicLink()) {
+		throw new Error(`Refusing symlinked workspace path: ${workspacePath}`);
+	}
+
+	let currentPath = workspacePath;
+	for (const segment of relativePath.split(path.sep)) {
+		currentPath = path.join(currentPath, segment);
+		try {
+			const stat = await fsPromises.lstat(currentPath);
+			if (stat.isSymbolicLink()) {
+				throw new Error(`Refusing symlinked Copilot hook path: ${currentPath}`);
+			}
+		} catch (error) {
+			if (error.code === 'ENOENT') {
+				return;
+			}
+			throw error;
+		}
+	}
+}
+
 function buildHookEntry(executablePath, nodeExecutablePath, hookScriptPath, policyFilePath, metricsFilePath) {
 	const bashExecutable = shellQuote(executablePath);
 	const powershellExecutable = powershellQuote(executablePath);
@@ -83,6 +112,7 @@ class CopilotHookManager {
 	}
 
 	async readHookFile(hookPath) {
+		await assertNoSymlinkPath(hookPath);
 		try {
 			const text = await fsPromises.readFile(hookPath, 'utf8');
 			try {
@@ -105,6 +135,7 @@ class CopilotHookManager {
 	}
 
 	async backupHookFile(hookPath) {
+		await assertNoSymlinkPath(hookPath);
 		const backupPath = `${hookPath}.bak`;
 		try {
 			await fsPromises.copyFile(hookPath, backupPath);
@@ -249,6 +280,7 @@ module.exports = {
 	buildHookEntry,
 	isBrevityEntry,
 	isRtkEntry,
+	assertNoSymlinkPath,
 	shellQuote,
 	powershellQuote,
 };
