@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# VS Code extension test/download artifacts
+.vscode-test/
+
+# Extension packages and build output
+*.vsix
+dist/
+out/
+coverage/
+
+# Test and debug output
+*.log
+*.tsbuildinfo
+.nyc_output/
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
