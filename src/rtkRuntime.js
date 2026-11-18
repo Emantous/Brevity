@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const tar = require('tar');
 const yauzl = require('yauzl');
+const { migrateRuntimeManifest } = require('./migrations');
 
 const RTK_TAG = 'dev-1.3.0-rc.642';
 const RTK_BINARY_VERSION = '0.49.0';
@@ -244,7 +245,9 @@ class RtkRuntimeManager {
 
 	async readManifest() {
 		try {
-			return JSON.parse(await fsPromises.readFile(path.join(this.rootDir, 'manifest.json'), 'utf8'));
+			return migrateRuntimeManifest(JSON.parse(
+				await fsPromises.readFile(path.join(this.rootDir, 'manifest.json'), 'utf8'),
+			));
 		} catch {
 			return null;
 		}
@@ -315,6 +318,7 @@ class RtkRuntimeManager {
 			await fsPromises.copyFile(extractedLicense, path.join(this.rootDir, 'LICENSE'));
 
 			const manifest = {
+				schemaVersion: 1,
 				tag: RTK_TAG,
 				binaryVersion: RTK_BINARY_VERSION,
 				asset: this.asset.asset,

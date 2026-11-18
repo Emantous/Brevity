@@ -4,6 +4,7 @@ const { spawnSync } = require('child_process');
 const fs = require('fs');
 const { isBrevityAllowedCommand } = require('./copilotPolicy');
 const { recordMetric } = require('./metrics');
+const { migratePolicy } = require('./migrations');
 
 function readPayload() {
 	return new Promise((resolve, reject) => {
@@ -117,7 +118,7 @@ async function main() {
 	let policy = {};
 	if (policyFile) {
 		try {
-			policy = JSON.parse(fs.readFileSync(policyFile, 'utf8'));
+			policy = migratePolicy(JSON.parse(fs.readFileSync(policyFile, 'utf8')));
 		} catch {
 			policy = {};
 		}

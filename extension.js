@@ -7,6 +7,7 @@ const { RtkRuntimeManager, RTK_TAG } = require('./src/rtkRuntime');
 const { CopilotHookManager } = require('./src/copilotHookManager');
 const { formatStatus, countSupportedCommands } = require('./src/uxStatus');
 const { clearMetrics, readMetrics, summarizeMetrics } = require('./src/metrics');
+const { migratePolicy } = require('./src/migrations');
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -173,7 +174,7 @@ function activate(context) {
 			await fsPromises.mkdir(policyDirectory, { recursive: true });
 			await fsPromises.writeFile(
 				path.join(policyDirectory, 'brevity-policy.json'),
-				JSON.stringify({
+				JSON.stringify(migratePolicy({
 					allowlist: vscode.workspace
 						.getConfiguration('brevity')
 						.get('rtk.commands.allowlist', [
@@ -189,7 +190,7 @@ function activate(context) {
 					commandOverrides: vscode.workspace
 						.getConfiguration('brevity')
 						.get('rtk.commands.overrides', {}),
-				}, null, 2),
+				}), null, 2),
 				{ encoding: 'utf8', mode: 0o600 },
 			);
 			await createHookManager(manager.executablePath).install();
