@@ -65,6 +65,40 @@ function sanitizedEnvironment(source = process.env) {
 	return environment;
 }
 
+function isRewriteResponse(response) {
+	if (!response || typeof response !== 'object') {
+		return false;
+	}
+	const updatedInput = response.updatedInput ||
+		(response.hookSpecificOutput && response.hookSpecificOutput.updatedInput);
+	const modifiedArgs = response.modifiedArgs;
+	return Boolean(
+		updatedInput && typeof updatedInput.command === 'string' ||
+		modifiedArgs && typeof modifiedArgs.command === 'string',
+	);
+}
+
+function runRtkHook(rtkExecutable, input, spawn = spawnSync) {
+	const result = spawn(rtkExecutable, ['hook', 'copilot'], {
+		input,
+		encoding: 'utf8',
+		timeout: 5_000,
+		maxBuffer: 1_048_576,
+		env: sanitizedEnvironment(),
+	});
+
+	if (result.error || result.status !== 0 || typeof result.stdout !== 'string' || !result.stdout.trim()) {
+		return '';
+	}
+
+	try {
+		const response = JSON.parse(result.stdout);
+		return isRewriteResponse(response) ? result.stdout : '';
+	} catch {
+		return '';
+	}
+}
+
 async function main() {
 	const rtkExecutable = process.argv[2];
 	const policyFile = process.argv[3];
@@ -101,18 +135,7 @@ async function main() {
 		process.exit(0);
 	}
 
-	const result = spawnSync(rtkExecutable, ['hook', 'copilot'], {
-		input,
-		encoding: 'utf8',
-		timeout: 5_000,
-		maxBuffer: 1_048_576,
-		env: sanitizedEnvironment(),
-	});
-
-	if (result.error || result.status !== 0) {
-		process.exit(0);
-	}
-	process.stdout.write(result.stdout || '');
+	process.stdout.write(runRtkHook(rtkExecutable, input));
 }
 
 if (require.main === module) {
@@ -121,5 +144,7 @@ if (require.main === module) {
 
 module.exports = {
 	getCommand,
+	isRewriteResponse,
+	runRtkHook,
 	sanitizedEnvironment,
 };

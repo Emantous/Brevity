@@ -8,7 +8,11 @@ const {
 	stripEnvironmentPrefixes,
 	matchesPattern,
 } = require('../../src/copilotPolicy');
-const { getCommand } = require('../../src/copilotHook');
+const {
+	getCommand,
+	isRewriteResponse,
+	runRtkHook,
+} = require('../../src/copilotHook');
 
 test('Copilot payload fixtures produce command strings', async () => {
 	const fixturePath = path.join(__dirname, '..', 'fixtures', 'copilot-payloads.json');
@@ -98,4 +102,31 @@ test('parser rejects shell-sensitive and incomplete commands', () => {
 		assert.equal(parseCommand(command), null, command);
 		assert.equal(isBrevityAllowedCommand(command), false, command);
 	}
+});
+
+test('RTK hook preserves valid rewrite envelopes and fails open safely', () => {
+	const vscodeResponse = JSON.stringify({
+		hookSpecificOutput: {
+			hookEventName: 'PreToolUse',
+			permissionDecisionReason: 'RTK auto-rewrite',
+			updatedInput: { command: 'rtk git status' },
+		},
+	});
+	const cliResponse = JSON.stringify({
+		modifiedArgs: { command: 'rtk git status' },
+	});
+
+	assert.equal(isRewriteResponse(JSON.parse(vscodeResponse)), true);
+	assert.equal(isRewriteResponse(JSON.parse(cliResponse)), true);
+	assert.equal(isRewriteResponse({}), false);
+	assert.equal(isRewriteResponse({ modifiedArgs: { command: 42 } }), false);
+
+	const successfulSpawn = () => ({ status: 0, stdout: vscodeResponse });
+	assert.equal(runRtkHook('/tmp/rtk', '{}', successfulSpawn), vscodeResponse);
+
+	const failedSpawn = () => ({ status: 1, stdout: cliResponse });
+	assert.equal(runRtkHook('/tmp/rtk', '{}', failedSpawn), '');
+
+	const malformedSpawn = () => ({ status: 0, stdout: '{"modifiedArgs":' });
+	assert.equal(runRtkHook('/tmp/rtk', '{}', malformedSpawn), '');
 });
