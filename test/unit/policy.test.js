@@ -31,6 +31,7 @@ test('allowlist supports read and build commands conservatively', () => {
 		'yarn test',
 		'cargo test',
 		'cargo clippy',
+		'npm run build',
 	]) {
 		assert.equal(isBrevityAllowedCommand(command), true, command);
 	}
@@ -42,6 +43,13 @@ test('allowlist supports read and build commands conservatively', () => {
 		'rtk bypass git status',
 		'cat <<EOF\nhello\nEOF',
 		'sudo git status',
+		'git branch -D feature',
+		'git push --force origin main',
+		'cargo run',
+		'npm run deploy',
+		'pnpm exec vitest --run',
+		'GITHUB_TOKEN=secret npm test',
+		'npm test --token=secret',
 	]) {
 		assert.equal(isBrevityAllowedCommand(command), false, command);
 	}

@@ -17,7 +17,6 @@ const GIT_SAFE_SUBCOMMANDS = new Set([
 
 const BUILD_SUBCOMMANDS = new Set([
 	'test',
-	'run',
 	'build',
 	'check',
 	'clippy',
@@ -30,6 +29,29 @@ const BUILD_SUBCOMMANDS = new Set([
 	'view',
 ]);
 const PRIVILEGED_EXECUTABLES = new Set(['sudo', 'su', 'doas']);
+const DANGEROUS_GIT_SUBCOMMANDS = new Set([
+	'apply',
+	'cherry-pick',
+	'clean',
+	'commit',
+	'config',
+	'fetch',
+	'merge',
+	'mv',
+	'push',
+	'rebase',
+	'remote',
+	'reset',
+	'restore',
+	'rm',
+	'stash',
+	'switch',
+	'tag',
+]);
+const SAFE_PACKAGE_SCRIPT_PATTERN = /^(?:build|check|format|lint|test|typecheck)(?::|$)/;
+const SENSITIVE_ENVIRONMENT_PATTERN = /(?:AUTH|CREDENTIAL|KEY|PASS(?:WORD)?|SECRET|TOKEN)/i;
+const SENSITIVE_ARGUMENT_PATTERN = /(?:^|[-_])(?:api[-_]?key|credential|pass(?:word)?|secret|token)(?:[-_=]|$)/i;
+const DANGEROUS_FLAG_PATTERN = /^(?:-[^-]*[dD]|--delete(?:=|$)|--force(?:=|$)|--hard(?:=|$)|--soft(?:=|$))$/;
 
 function pathBaseName(value) {
 	return value.replace(/\\/g, '/').split('/').pop();
@@ -160,6 +182,26 @@ function extractCommand(command) {
 	};
 }
 
+function hasDangerousIntent(parsed) {
+	if (PRIVILEGED_EXECUTABLES.has(parsed.executable) ||
+		DANGEROUS_GIT_SUBCOMMANDS.has(parsed.subcommand) ||
+		(parsed.executable === 'cargo' && parsed.subcommand === 'run') ||
+		(parsed.executable === 'git' && parsed.subcommand === 'branch' &&
+			parsed.flags.some((flag) => DANGEROUS_FLAG_PATTERN.test(flag))) ||
+		(['npm', 'pnpm', 'yarn'].includes(parsed.executable) &&
+			parsed.subcommand === 'run' &&
+			!SAFE_PACKAGE_SCRIPT_PATTERN.test(parsed.args[0] || ''))) {
+		return true;
+	}
+
+	if (Object.keys(parsed.environment).some((key) => SENSITIVE_ENVIRONMENT_PATTERN.test(key))) {
+		return true;
+	}
+
+	return [...parsed.flags, ...parsed.args].some((value) =>
+		SENSITIVE_ARGUMENT_PATTERN.test(value));
+}
+
 function matchesPattern(command, patterns = []) {
 	const stripped = stripEnvironmentPrefixes(command);
 	return patterns.some((pattern) => {
@@ -192,12 +234,12 @@ function isBrevityAllowedCommand(command, options = {}) {
 	if (!parsed) {
 		return false;
 	}
+	if (parsed.wrapper || hasDangerousIntent(parsed)) {
+		return false;
+	}
 
 	const allowlist = options.allowlist || DEFAULT_COMMAND_ALLOWLIST;
 	if (!allowlist.includes(parsed.executable)) {
-		return false;
-	}
-	if (PRIVILEGED_EXECUTABLES.has(parsed.executable)) {
 		return false;
 	}
 
@@ -208,7 +250,9 @@ function isBrevityAllowedCommand(command, options = {}) {
 		return BUILD_SUBCOMMANDS.has(parsed.subcommand);
 	}
 	if (['npm', 'pnpm', 'yarn'].includes(parsed.executable)) {
-		return BUILD_SUBCOMMANDS.has(parsed.subcommand);
+		return parsed.subcommand === 'run'
+			? SAFE_PACKAGE_SCRIPT_PATTERN.test(parsed.args[0] || '')
+			: BUILD_SUBCOMMANDS.has(parsed.subcommand);
 	}
 	return false;
 }
@@ -217,6 +261,7 @@ module.exports = {
 	DEFAULT_COMMAND_ALLOWLIST,
 	GIT_SAFE_SUBCOMMANDS,
 	BUILD_SUBCOMMANDS,
+	hasDangerousIntent,
 	extractCommand,
 	parseCommand,
 	matchesPattern,
