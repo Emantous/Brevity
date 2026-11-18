@@ -238,7 +238,12 @@ class RtkRuntimeManager {
 		try {
 			await fsPromises.access(this.executablePath, fs.constants.R_OK);
 			const manifest = await this.readManifest();
-			if (manifest && manifest.tag === RTK_TAG) {
+			if (
+				manifest &&
+				manifest.tag === RTK_TAG &&
+				manifest.asset === this.asset.asset &&
+				manifest.archiveSha256 === this.asset.sha256
+			) {
 				const executable = await fsPromises.readFile(this.executablePath);
 				if (manifest.executableSha256 === sha256(executable)) {
 					return { ready: true, message: `RTK ${RTK_BINARY_VERSION} is ready for Brevity.` };
@@ -331,6 +336,7 @@ class RtkRuntimeManager {
 				asset: this.asset.asset,
 				executableSha256: sha256(await fsPromises.readFile(this.executablePath)),
 				archiveSha256: checksum,
+				verificationSource: 'bundled-pinned-sha256',
 			};
 			await fsPromises.writeFile(
 				path.join(this.rootDir, 'manifest.json'),

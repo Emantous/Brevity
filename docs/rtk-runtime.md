@@ -39,6 +39,11 @@ The download has a 30-second timeout, bounded archive size, three attempts,
 and bounded redirects. The release `checksums.txt` entry must match the
 SHA-256 hash of the downloaded archive before extraction.
 
+The supported asset hashes are bundled with the extension and are checked
+again when a cached manifest is reused. A cached runtime is not considered
+ready if its release tag, asset name, archive hash, or executable hash does
+not match the pinned values.
+
 The extracted executable and license are copied into extension-owned storage.
 A manifest records the release tag, asset name, archive hash, and executable
 hash. Cached executables are reused only when the executable hash matches the
