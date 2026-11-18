@@ -41,7 +41,7 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm test
+      - run: xvfb-run -a npm test
       - run: npm run test:smoke
 
   package:
