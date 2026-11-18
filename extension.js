@@ -5,6 +5,7 @@ const fsPromises = require('fs').promises;
 const path = require('path');
 const { RtkRuntimeManager, RTK_TAG } = require('./src/rtkRuntime');
 const { CopilotHookManager } = require('./src/copilotHookManager');
+const { formatStatus, countSupportedCommands } = require('./src/uxStatus');
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -20,6 +21,11 @@ function activate(context) {
 	});
 
 	const output = vscode.window.createOutputChannel('Brevity RTK');
+	const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+	statusBar.command = 'brevity.rtkStatus';
+	statusBar.show();
+	statusBar.text = '$(sync~spin) Brevity: Starting';
+	statusBar.tooltip = 'Checking Brevity RTK runtime status.';
 	const manager = new RtkRuntimeManager({
 		storageDir: context.globalStorageUri.fsPath,
 		output: (message) => output.appendLine(message),
@@ -29,12 +35,17 @@ function activate(context) {
 		const status = await manager.status();
 		const hookManager = createHookManager(manager.executablePath);
 		const hookStatuses = await hookManager.status();
+		const allowlist = vscode.workspace.getConfiguration('brevity')
+			.get('rtk.commands.allowlist', ['git', 'npm', 'pnpm', 'yarn', 'cargo']);
+		const supportedCount = countSupportedCommands(allowlist);
 		const hookMessage = hookStatuses.length === 0
 			? 'No workspace is open, so no project hook is registered.'
 			: hookStatuses.map((item) => item.installed
 				? `Hook installed: ${item.hookPath}`
 				: `Hook not installed: ${item.hookPath}`).join('\n');
-		vscode.window.showInformationMessage(`${status.message}\n${hookMessage}`);
+		vscode.window.showInformationMessage(
+			`${status.message}\n${hookMessage}\nSupported command families: ${supportedCount}`,
+		);
 	});
 
 	let retryDisposable = vscode.commands.registerCommand('brevity.rtkRetry', async function () {
@@ -59,7 +70,25 @@ function activate(context) {
 		);
 		const hookManager = createHookManager(manager.executablePath);
 		await hookManager.uninstall();
+		updateStatusBar(false, false, 0);
 		vscode.window.showInformationMessage('Brevity RTK is disabled and its Copilot hook was removed.');
+	});
+
+	const uninstallDisposable = vscode.commands.registerCommand('brevity.rtkUninstall', async function () {
+		await vscode.workspace.getConfiguration('brevity').update(
+			'rtk.enabled',
+			false,
+			vscode.ConfigurationTarget.Global,
+		);
+		const hookManager = createHookManager(manager.executablePath);
+		await hookManager.uninstall();
+
+		const managedRoot = path.join(context.globalStorageUri.fsPath, 'rtk');
+		await fsPromises.rm(managedRoot, { recursive: true, force: true });
+		updateStatusBar(false, false, 0);
+		vscode.window.showInformationMessage(
+			'Brevity removed its managed RTK runtime and Copilot hook. The extension setting is disabled.',
+		);
 	});
 
 	context.subscriptions.push(
@@ -67,8 +96,16 @@ function activate(context) {
 		statusDisposable,
 		retryDisposable,
 		disableDisposable,
+		uninstallDisposable,
 		output,
+		statusBar,
 	);
+
+	async function updateStatusBar(enabled, runtimeReady, hookCount) {
+		const view = formatStatus({ enabled, runtimeReady, hookCount });
+		statusBar.text = view.text;
+		statusBar.tooltip = view.tooltip;
+	}
 
 	function createHookManager(executablePath) {
 		const policyFilePath = path.join(
@@ -89,6 +126,7 @@ function activate(context) {
 
 	async function prepareRuntime() {
 		if (!vscode.workspace.getConfiguration('brevity').get('rtk.enabled', true)) {
+			updateStatusBar(false, false, 0);
 			return;
 		}
 		const result = await manager.ensureRuntime();
@@ -113,6 +151,14 @@ function activate(context) {
 				{ encoding: 'utf8', mode: 0o600 },
 			);
 			await createHookManager(manager.executablePath).install();
+			const hookStatuses = await createHookManager(manager.executablePath).status();
+			updateStatusBar(
+				true,
+				true,
+				hookStatuses.filter((item) => item.installed).length,
+			);
+		} else {
+			updateStatusBar(true, false, 0);
 		}
 	}
 

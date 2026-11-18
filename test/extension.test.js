@@ -17,6 +17,7 @@ const {
 const { isBrevityAllowedCommand } = require('../src/copilotPolicy');
 const { sanitizedEnvironment } = require('../src/copilotHook');
 const { PINNED_ARCHIVE_SHA256 } = require('../src/rtkRuntime');
+const { formatStatus, countSupportedCommands } = require('../src/uxStatus');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const os = require('os');
@@ -141,5 +142,22 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(environment.HOME, '/tmp/test-home');
 		assert.strictEqual(environment.GITHUB_TOKEN, undefined);
 		assert.strictEqual(environment.ANTHROPIC_API_KEY, undefined);
+	});
+
+	test('UX status describes disabled, setup, missing hook, and ready states', () => {
+		assert.strictEqual(formatStatus({ enabled: false, runtimeReady: false }).text,
+			'$(circle-slash) Brevity: Off');
+		assert.strictEqual(formatStatus({ enabled: true, runtimeReady: false }).text,
+			'$(warning) Brevity: Setup needed');
+		assert.strictEqual(formatStatus({ enabled: true, runtimeReady: true, hookCount: 0 }).text,
+			'$(warning) Brevity: No hook');
+		assert.strictEqual(formatStatus({ enabled: true, runtimeReady: true, hookCount: 2 }).text,
+			'$(rocket) Brevity: Ready');
+	});
+
+	test('UX supported-command count does not expose command contents', () => {
+		assert.strictEqual(countSupportedCommands(['git']), 6);
+		assert.strictEqual(countSupportedCommands(['git', 'npm', 'cargo']), 20);
+		assert.strictEqual(countSupportedCommands([]), 0);
 	});
 });

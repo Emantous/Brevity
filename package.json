@@ -33,6 +33,10 @@
       {
         "command": "brevity.rtkDisable",
         "title": "Brevity: Disable RTK and Remove Copilot Hook"
+      },
+      {
+        "command": "brevity.rtkUninstall",
+        "title": "Brevity: Uninstall Managed RTK Runtime"
       }
     ],
     "configuration": {
@@ -54,6 +58,11 @@
           "items": { "type": "string" },
           "default": [],
           "description": "Exact prefixes or regular expressions beginning with ^ that Brevity must not rewrite."
+        },
+        "brevity.rtk.allowBypass": {
+          "type": "boolean",
+          "default": true,
+          "description": "Document and preserve the RTK bypass command for raw, uncompressed output."
         }
       }
     }

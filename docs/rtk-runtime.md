@@ -45,6 +45,7 @@ The runtime status and retry commands are:
 - `Brevity: Show RTK Runtime Status`
 - `Brevity: Retry RTK Runtime Setup`
 - `Brevity: Disable RTK and Remove Copilot Hook`
+- `Brevity: Uninstall Managed RTK Runtime`
 
 ## Copilot hook integration
 
