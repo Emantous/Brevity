@@ -94,6 +94,9 @@ unchanged.
 See [Troubleshooting](docs/troubleshooting.md) for download, checksum, hook,
 Copilot, and raw-output recovery steps.
 
+Release and rollback procedures are documented in
+[Release policy](docs/release-policy.md).
+
 ## Development
 
 ```bash

@@ -73,12 +73,15 @@
     "test": "vscode-test",
     "test:unit": "node --test test/unit/*.test.js",
     "test:smoke": "bash test/rtk-copilot-hook-smoke.sh",
-    "test:all": "npm run lint && npm run test:unit && npm test && npm run test:smoke"
+    "test:all": "npm run lint && npm run test:unit && npm test && npm run test:smoke",
+    "package": "vsce package",
+    "package:check": "node scripts/check-vsix-contents.js"
   },
   "devDependencies": {
     "@types/vscode": "^1.140.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
+    "@vscode/vsce": "^3.7.1",
     "eslint": "^10.5.0",
     "globals": "^16.0.0",
     "@vscode/test-cli": "^0.0.15",
