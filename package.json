@@ -1,7 +1,7 @@
 {
   "name": "brevity",
   "displayName": "Brevity",
-  "description": "",
+  "description": "Automatically reduces token-heavy command output for GitHub Copilot sessions.",
   "version": "0.0.1",
   "publisher": "EmantTools",
   "repository": {

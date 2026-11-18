@@ -1,68 +1,117 @@
 # Brevity
 
-Brevity is a work-in-progress Visual Studio Code extension for reducing token
-usage in AI-assisted development workflows.
-
-The project is at an early stage. The extension scaffold is in place, while
-the token-reduction functionality is still being designed and implemented.
+Brevity reduces token-heavy command output for GitHub Copilot sessions by
+managing RTK automatically inside Visual Studio Code. Users do not need to
+install RTK, configure shell aliases, or edit Copilot hook files manually.
 
 ## Current status
 
-At present, Brevity provides a basic `Hello World` command to verify the
-extension lifecycle and development setup. It is not yet ready for production
-use or published on the Visual Studio Code Marketplace.
+Brevity now manages a pinned RTK OSS runtime, writes a project Copilot hook,
+and applies a conservative command allowlist. It is under active development
+and is not yet published on the Visual Studio Code Marketplace.
 
-Planned areas of work include:
+## Installation and setup
 
-- identifying redundant or low-value context before it is sent to an AI tool;
-- reducing prompts and workspace context while preserving useful information;
-- making token savings visible and understandable;
-- integrating smoothly with existing VS Code workflows.
+After installing Brevity:
 
-## Requirements
+1. Open a folder or workspace in VS Code.
+2. Start or open a GitHub Copilot Chat session.
+3. Brevity downloads and verifies RTK automatically after VS Code starts.
+4. Brevity creates `.github/hooks/rtk-rewrite.json` only inside open
+   workspace folders.
 
-- Visual Studio Code `1.140.0` or newer for development and testing;
-- Node.js and npm.
+No terminal command or manual RTK installation is required.
+
+Check the lower-right status bar for:
+
+- `Brevity: Ready`
+- `Brevity: Setup needed`
+- `Brevity: No hook`
+- `Brevity: Off`
+
+Open **Command Palette** and run **Brevity: Show RTK Runtime Status** for
+details.
+
+## Supported command scope
+
+Brevity initially compresses:
+
+- Git read/status commands such as `git status`, `git diff`, `git log`,
+  `git branch`, `git show`, and `git stats`
+- Common npm, pnpm, and yarn test/run/build/list commands
+- Common cargo test/build/check/clippy/nextest commands
+
+Unknown commands and shell-sensitive commands pass through unchanged.
+Mutating Git commands are not included in the initial allowlist.
+
+## Raw output
+
+Use `rtk bypass <command>` to run a command without compression and retain raw
+output. For example:
+
+```bash
+rtk bypass git status
+```
+
+The bypass is also useful if a filtered result appears incomplete.
+
+## Settings
+
+- `brevity.rtk.enabled` — enable or disable Brevity.
+- `brevity.rtk.commands.allowlist` — command families Brevity may handle.
+- `brevity.rtk.commands.excludePatterns` — exact prefixes or regular expressions
+  beginning with `^` that must remain unchanged.
+- `brevity.rtk.allowBypass` — show and preserve the raw-output bypass guidance.
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| Brevity: Show RTK Runtime Status | Show runtime and hook status |
+| Brevity: Retry RTK Runtime Setup | Download or reinitialize RTK |
+| Brevity: Disable RTK and Remove Copilot Hook | Disable Brevity and remove its hook |
+| Brevity: Uninstall Managed RTK Runtime | Remove the hook and cached runtime |
+
+## Privacy and licensing
+
+Brevity does not send command text, source content, file paths, environment
+variables, or hook payloads to Brevity telemetry. RTK tracking remains local
+to the user's machine.
+
+The initial runtime is RTK OSS, licensed under Apache-2.0. Full RTK includes
+separate license boundaries and is not selected. See
+[third-party notices](docs/third-party-notices.md).
+
+## Remote hosts
+
+The runtime is stored in each VS Code execution context. This means Remote
+SSH, Dev Containers, WSL, and local VS Code installations need the appropriate
+runtime visible in that context. Unsupported platforms pass commands through
+unchanged.
+
+## Troubleshooting
+
+See [Troubleshooting](docs/troubleshooting.md) for download, checksum, hook,
+Copilot, and raw-output recovery steps.
 
 ## Development
-
-Clone the repository, install dependencies, and open the project in VS Code:
 
 ```bash
 npm install
 code .
 ```
 
-Press `F5` to launch an Extension Development Host. Open the Command Palette
-(`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS) and run **Hello World**.
-
-### Scripts
+Press `F5` to launch an Extension Development Host.
 
 ```bash
 npm run lint
-npm test
-```
-
-The testing scripts are:
-
-```bash
 npm run test:unit
 npm test
 npm run test:smoke
 npm run test:all
 ```
 
-The test command runs the extension test suite and the configured lint checks.
-
-## Extension details
-
-The extension currently contributes one command:
-
-| Command | Command ID |
-| --- | --- |
-| Hello World | `brevity.helloWorld` |
-
-No user settings are currently contributed.
+See [Testing](docs/testing.md) for test layers and fixtures.
 
 ## Contributing
 
@@ -76,12 +125,6 @@ Before submitting a change, run:
 npm run lint
 npm test
 ```
-
-## Known limitations
-
-- Token-reduction behavior has not been implemented yet.
-- The extension is not published to the Marketplace.
-- The command and API surface may change during development.
 
 ## Third-party notices
 
