@@ -16,6 +16,14 @@
   ],
   "activationEvents": ["onStartupFinished"],
   "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "brevity.activate",
+        "title": "Activate Brevity"
+      }
+    ]
+  },
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",

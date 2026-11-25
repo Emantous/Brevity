@@ -74,7 +74,7 @@ function isRtkEntry(entry) {
 	}
 	return [entry.command, entry.bash, entry.powershell]
 		.filter((value) => typeof value === 'string')
-		.some((value) => /(?:^|\s|['"])(?:rtk)(?:\.exe)?\s+hook\s+copilot/.test(value) ||
+		.some((value) => /(?:^|[\s\\/"'])rtk(?:\.exe)?["']?\s+hook\s+copilot/i.test(value) ||
 			value.includes(BREVITY_MARKER));
 }
 
@@ -98,6 +98,32 @@ class CopilotHookManager {
 			.map((folder) => folder.uri ? folder.uri.fsPath : folder)
 			.filter(Boolean)
 			.map((workspacePath) => path.join(workspacePath, '.github', 'hooks', HOOK_FILE_NAME));
+	}
+
+	async findRtkHookPaths(directory) {
+		let files;
+		try {
+			files = await fsPromises.readdir(directory, { withFileTypes: true });
+		} catch (error) {
+			if (error.code === 'ENOENT') {
+				return [];
+			}
+			throw error;
+		}
+
+		const hookPaths = [];
+		for (const file of files) {
+			if (!file.isFile() || !file.name.endsWith('.json')) {
+				continue;
+			}
+			const hookPath = path.join(directory, file.name);
+			const config = await this.readHookFile(hookPath);
+			if (Array.isArray(config?.hooks?.PreToolUse) &&
+				config.hooks.PreToolUse.some(isRtkEntry)) {
+				hookPaths.push(hookPath);
+			}
+		}
+		return hookPaths;
 	}
 
 	async readHookFile(hookPath) {
@@ -153,6 +179,31 @@ class CopilotHookManager {
 		}
 	}
 
+	async removeBrevityEntries(hookPath, config) {
+		if (!Array.isArray(config?.hooks?.PreToolUse)) {
+			return false;
+		}
+		const entries = config.hooks.PreToolUse;
+		const remaining = entries.filter((entry) => !isBrevityEntry(entry));
+		if (remaining.length === entries.length) {
+			return false;
+		}
+
+		config.hooks.PreToolUse = remaining;
+		if (remaining.length === 0) {
+			await this.backupHookFile(hookPath);
+			delete config.hooks.PreToolUse;
+		}
+		if (Object.keys(config.hooks).length === 0) {
+			await fsPromises.unlink(hookPath);
+			this.output(`Removed Brevity Copilot hook: ${hookPath}`);
+		} else {
+			await this.writeHookFile(hookPath, config);
+			this.output(`Removed Brevity entry from Copilot hook: ${hookPath}`);
+		}
+		return true;
+	}
+
 	async install() {
 		const results = [];
 		for (const hookPath of this.getHookPaths()) {
@@ -170,6 +221,15 @@ class CopilotHookManager {
 				}
 			}
 
+			const existingRtkHooks = await this.findRtkHookPaths(path.dirname(hookPath));
+			const hasRtkHookElsewhere = existingRtkHooks.some((existingPath) =>
+				path.resolve(existingPath) !== path.resolve(hookPath));
+			if (hasRtkHookElsewhere) {
+				await this.removeBrevityEntries(hookPath, existing);
+				results.push({ hookPath, installed: false, existing: true });
+				continue;
+			}
+
 			const config = existing || { version: 1, hooks: {} };
 			if (!config.hooks || typeof config.hooks !== 'object') {
 				config.hooks = {};
@@ -178,14 +238,25 @@ class CopilotHookManager {
 				config.hooks.PreToolUse = [];
 			}
 
-			const unrelated = config.hooks.PreToolUse.filter((entry) => !isRtkEntry(entry));
+			const entries = config.hooks.PreToolUse;
+			const rtkEntries = entries.filter(isRtkEntry);
+			if (rtkEntries.length > 0) {
+				const keeper = rtkEntries.find((entry) => !isBrevityEntry(entry)) || rtkEntries[0];
+				config.hooks.PreToolUse = entries.filter((entry) => !isRtkEntry(entry) || entry === keeper);
+				if (config.hooks.PreToolUse.length !== entries.length) {
+					await this.writeHookFile(hookPath, config);
+				}
+				results.push({ hookPath, installed: true, existing: true });
+				continue;
+			}
+
 			config.hooks.PreToolUse = [
 				buildHookEntry(this.executablePath, this.nodeExecutablePath, this.hookScriptPath),
-				...unrelated,
+				...entries,
 			];
 			await this.writeHookFile(hookPath, config);
 			this.output(`Installed Brevity Copilot hook: ${hookPath}`);
-			results.push({ hookPath, installed: true });
+			results.push({ hookPath, installed: true, existing: false });
 		}
 		return results;
 	}
@@ -194,30 +265,8 @@ class CopilotHookManager {
 		const results = [];
 		for (const hookPath of this.getHookPaths()) {
 			const existing = await this.readHookFile(hookPath);
-			if (!existing || !Array.isArray(existing.hooks?.PreToolUse)) {
-				results.push({ hookPath, removed: false });
-				continue;
-			}
-
-			const remaining = existing.hooks.PreToolUse.filter((entry) => !isBrevityEntry(entry));
-			if (remaining.length === existing.hooks.PreToolUse.length) {
-				results.push({ hookPath, removed: false });
-				continue;
-			}
-
-			existing.hooks.PreToolUse = remaining;
-			if (remaining.length === 0) {
-				await this.backupHookFile(hookPath);
-				delete existing.hooks.PreToolUse;
-			}
-			if (Object.keys(existing.hooks).length === 0) {
-				await fsPromises.unlink(hookPath);
-				this.output(`Removed Brevity Copilot hook: ${hookPath}`);
-			} else {
-				await this.writeHookFile(hookPath, existing);
-				this.output(`Removed Brevity entry from Copilot hook: ${hookPath}`);
-			}
-			results.push({ hookPath, removed: true });
+			const removed = existing ? await this.removeBrevityEntries(hookPath, existing) : false;
+			results.push({ hookPath, removed });
 		}
 		return results;
 	}

@@ -13,7 +13,8 @@ and leaves the rest unchanged.
 
 No commands or settings need to be configured. RTK decides which commands it
 can translate. To see the unshortened output for one command, use RTK's
-`rtk bypass <command>` form.
+`rtk bypass <command>` form. If the hook is removed, run **Activate Brevity**
+from the Command Palette to install it again.
 
 ## Development
 

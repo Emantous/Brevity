@@ -15,6 +15,7 @@ const {
 } = require('../src/core/hookManager');
 const { sanitizedEnvironment } = require('../src/core/hook');
 const { PINNED_ARCHIVE_SHA256 } = require('../src/tools/rtk/runtime');
+const packageJson = require('../package.json');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const os = require('os');
@@ -27,6 +28,11 @@ suite('Extension Test Suite', () => {
 	test('Sample test', () => {
 		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
 		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
+	});
+
+	test('Activate Brevity is available in the Command Palette', () => {
+		assert.ok(packageJson.contributes.commands.some((command) =>
+			command.command === 'brevity.activate' && command.title === 'Activate Brevity'));
 	});
 
 	test('RTK assets map supported platforms', () => {
@@ -105,6 +111,66 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(config.hooks.PreToolUse[0].bash, 'echo keep-me');
 		assert.ok(await fsPromises.stat(`${hookPath}.bak`));
 
+		await manager.install();
+		config = JSON.parse(await fsPromises.readFile(hookPath, 'utf8'));
+		assert.strictEqual(config.hooks.PreToolUse.filter(isBrevityEntry).length, 1);
+		assert.strictEqual(config.hooks.PreToolUse.length, 2);
+
+		await fsPromises.rm(workspace, { recursive: true, force: true });
+	});
+
+	test('Copilot hook install does not duplicate an RTK hook in another hook file', async () => {
+		const workspace = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'brevity-hook-deduplicate-test-'));
+		const hookDirectory = path.join(workspace, '.github', 'hooks');
+		const existingHookPath = path.join(hookDirectory, 'rtk.json');
+		await fsPromises.mkdir(hookDirectory, { recursive: true });
+		await fsPromises.writeFile(existingHookPath, JSON.stringify({
+			version: 1,
+			hooks: { PreToolUse: [{ type: 'command', bash: 'rtk hook copilot' }] },
+		}));
+
+		const manager = new CopilotHookManager({
+			workspaceFolders: [workspace],
+			executablePath: path.join(workspace, 'rtk'),
+			hookScriptPath: path.join(workspace, 'copilotHook.js'),
+		});
+		const results = await manager.install();
+
+		assert.deepStrictEqual(results[0], {
+			hookPath: path.join(hookDirectory, 'rtk-rewrite.json'),
+			installed: false,
+			existing: true,
+		});
+		await assert.rejects(() =>
+			fsPromises.stat(path.join(hookDirectory, 'rtk-rewrite.json')),
+		{ code: 'ENOENT' });
+		assert.strictEqual(
+			JSON.parse(await fsPromises.readFile(existingHookPath, 'utf8')).hooks.PreToolUse.length,
+			1,
+		);
+		await fsPromises.rm(workspace, { recursive: true, force: true });
+	});
+
+	test('Copilot hook install removes its duplicate when another RTK hook appears', async () => {
+		const workspace = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'brevity-hook-existing-test-'));
+		const hookDirectory = path.join(workspace, '.github', 'hooks');
+		const manager = new CopilotHookManager({
+			workspaceFolders: [workspace],
+			executablePath: path.join(workspace, 'rtk'),
+			hookScriptPath: path.join(workspace, 'copilotHook.js'),
+		});
+		await manager.install();
+		await fsPromises.writeFile(path.join(hookDirectory, 'rtk.json'), JSON.stringify({
+			version: 1,
+			hooks: { PreToolUse: [{ type: 'command', command: '"rtk" hook copilot' }] },
+		}));
+
+		const results = await manager.install();
+		assert.strictEqual(results[0].installed, false);
+		assert.strictEqual(results[0].existing, true);
+		await assert.rejects(() =>
+			fsPromises.stat(path.join(hookDirectory, 'rtk-rewrite.json')),
+		{ code: 'ENOENT' });
 		await fsPromises.rm(workspace, { recursive: true, force: true });
 	});
 

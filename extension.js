@@ -34,24 +34,48 @@ function activate(context) {
 	}
 
 	async function installForOpenWorkspaces() {
-		if (!(vscode.workspace.workspaceFolders || []).length || !await ensureRuntime()) {
-			return;
+		if (!(vscode.workspace.workspaceFolders || []).length) {
+			return { ok: false, reason: 'workspace' };
+		}
+		if (!await ensureRuntime()) {
+			return { ok: false, reason: 'runtime' };
 		}
 		const folders = vscode.workspace.workspaceFolders || [];
 		if (folders.length === 0) {
-			return;
+			return { ok: false, reason: 'workspace' };
 		}
 		hookManager.workspaceFolders = folders;
-		await hookManager.install();
+		const results = await hookManager.install();
+		return { ok: true, existing: results.every((result) => result.existing) };
 	}
 
 	function queue(task) {
 		pendingSetup = pendingSetup
 			.then(task)
-			.catch((error) => console.error(`[Brevity] ${error.message}`));
+			.catch((error) => {
+				console.error(`[Brevity] ${error.message}`);
+				return null;
+			});
+		return pendingSetup;
 	}
 
+	const activateCommand = vscode.commands.registerCommand('brevity.activate', async () => {
+		const result = await queue(installForOpenWorkspaces);
+		if (result && result.ok) {
+			vscode.window.showInformationMessage(
+				result.existing
+					? 'An RTK hook is already present; no duplicate was added.'
+					: 'Brevity is active in the open workspace.',
+			);
+		} else if (result && result.reason === 'workspace') {
+			vscode.window.showWarningMessage('Open a workspace before activating Brevity.');
+		} else {
+			vscode.window.showErrorMessage('RTK could not be prepared. Check the extension host log.');
+		}
+	});
+
 	context.subscriptions.push(
+		activateCommand,
 		vscode.workspace.onDidChangeWorkspaceFolders((event) => {
 			queue(async () => {
 				if (event.removed.length > 0) {
