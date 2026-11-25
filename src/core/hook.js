@@ -1,10 +1,6 @@
 #!/usr/bin/env node
 
 const { spawnSync } = require('child_process');
-const fs = require('fs');
-const { isBrevityAllowedCommand } = require('./policy');
-const { recordMetric } = require('./metrics');
-const { migratePolicy } = require('./migrations');
 
 function readPayload() {
 	return new Promise((resolve, reject) => {
@@ -22,6 +18,9 @@ function readPayload() {
 }
 
 function getCommand(payload) {
+	if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+		return null;
+	}
 	const directInputs = [
 		payload.tool_input,
 		payload.toolInput,
@@ -44,7 +43,7 @@ function getCommand(payload) {
 		}
 		try {
 			const args = JSON.parse(input);
-			if (typeof args.command === 'string') {
+			if (args && typeof args === 'object' && typeof args.command === 'string') {
 				return args.command;
 			}
 		} catch {
@@ -52,6 +51,11 @@ function getCommand(payload) {
 		}
 	}
 	return null;
+}
+
+function shouldRunRtkHook(payload) {
+	const command = getCommand(payload);
+	return Boolean(command && !/^rtk(?:\.exe)?(?:\s|$)/i.test(command.trim()));
 }
 
 function sanitizedEnvironment(source = process.env) {
@@ -88,7 +92,7 @@ function isRewriteResponse(response) {
 	);
 }
 
-function runRtkHookResult(rtkExecutable, input, spawn = spawnSync) {
+function runRtkHook(rtkExecutable, input, spawn = spawnSync) {
 	const result = spawn(rtkExecutable, ['hook', 'copilot'], {
 		input,
 		encoding: 'utf8',
@@ -98,38 +102,21 @@ function runRtkHookResult(rtkExecutable, input, spawn = spawnSync) {
 	});
 
 	if (result.error || result.status !== 0 || typeof result.stdout !== 'string' || !result.stdout.trim()) {
-		return { output: '', reason: result.error || result.status !== 0 ? 'failure' : 'empty' };
+		return '';
 	}
 
 	try {
 		const response = JSON.parse(result.stdout);
-		return isRewriteResponse(response)
-			? { output: result.stdout, reason: 'rewritten', response }
-			: { output: '', reason: 'invalid' };
+		return isRewriteResponse(response) ? result.stdout : '';
 	} catch {
-		return { output: '', reason: 'invalid' };
+		return '';
 	}
-}
-
-function runRtkHook(rtkExecutable, input, spawn = spawnSync) {
-	return runRtkHookResult(rtkExecutable, input, spawn).output;
 }
 
 async function main() {
 	const rtkExecutable = process.argv[2];
-	const policyFile = process.argv[3];
-	const metricsFilePath = process.argv[4];
 	if (!rtkExecutable) {
 		process.exit(0);
-	}
-
-	let policy = {};
-	if (policyFile) {
-		try {
-			policy = migratePolicy(JSON.parse(fs.readFileSync(policyFile, 'utf8')));
-		} catch {
-			policy = {};
-		}
 	}
 
 	const input = await readPayload();
@@ -144,37 +131,11 @@ async function main() {
 		process.exit(0);
 	}
 
-	const command = getCommand(payload);
-	if (typeof command === 'string' && /^rtk\s+bypass(?:\s|$)/.test(command)) {
-		await recordMetric(metricsFilePath, 'bypasses');
-		process.exit(0);
-	}
-	if (!isBrevityAllowedCommand(command, {
-		allowlist: policy.allowlist,
-		excludePatterns: policy.excludePatterns,
-		commandOverrides: policy.commandOverrides,
-	})) {
+	if (!shouldRunRtkHook(payload)) {
 		process.exit(0);
 	}
 
-	const result = runRtkHookResult(rtkExecutable, input);
-	if (result.reason === 'rewritten') {
-		const hookOutput = result.response.hookSpecificOutput || result.response.hook_specific_output;
-		const updatedInput = result.response.updatedInput ||
-			result.response.updated_input ||
-			hookOutput?.updatedInput ||
-			hookOutput?.updated_input;
-		const modifiedArgs = result.response.modifiedArgs || result.response.modified_args;
-		const rewrittenCommand = updatedInput?.command || modifiedArgs?.command || '';
-		await recordMetric(metricsFilePath, 'rewrites', {
-			inputCharacters: command.length,
-			rewrittenCharacters: rewrittenCommand.length,
-		});
-	} else if (result.reason === 'failure' || result.reason === 'invalid') {
-		await recordMetric(metricsFilePath, 'failures');
-		await recordMetric(metricsFilePath, 'rawFallbacks');
-	}
-	process.stdout.write(result.output);
+	process.stdout.write(runRtkHook(rtkExecutable, input));
 }
 
 if (require.main === module) {
@@ -183,8 +144,8 @@ if (require.main === module) {
 
 module.exports = {
 	getCommand,
+	shouldRunRtkHook,
 	isRewriteResponse,
 	runRtkHook,
-	runRtkHookResult,
 	sanitizedEnvironment,
 };

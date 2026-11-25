@@ -1,16 +1,5 @@
-# RTK tool adapter
+# RTK runtime
 
-This directory contains the RTK-specific implementation only.
-
-- `runtime.js` downloads, verifies, caches, starts, and reports RTK.
-- RTK is registered as a Brevity tool and may be combined with future tools.
-- RTK does not define the extension-wide enable, disable, status, or metrics
-  lifecycle.
-
-Future implementations should follow this directory pattern:
-
-```text
-src/tools/<tool-name>/
-  index.js
-  implementation files
-```
+`runtime.js` downloads and verifies the RTK executable for the current
+platform. The Copilot hook calls `rtk hook copilot`; RTK decides which terminal
+commands it can rewrite. Brevity does not keep a second command list.

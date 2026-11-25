@@ -1,45 +1,21 @@
-# Adding Brevity tools and strategies
+# Brevity development notes
 
-Read this file before changing token-reduction behavior.
+Brevity is a small VS Code extension that connects Copilot's terminal hook to
+the RTK command-output tool.
 
-## Structure
+## Main flow
 
-- `src/core/` — extension orchestration, Copilot hooks, policy, metrics,
-  settings, migrations, status, and execution-context handling.
-- `src/strategies/` — strategy contracts and implementations shared by tools.
-- `src/tools/` — external tool adapters. One tool per directory.
-- `src/tools/rtk/` — RTK-specific download, cache, verification, and runtime
-  adapter.
-- `test/unit/` — fast policy/runtime/registry tests.
-- `test/fixtures/` — payload and output fixtures.
+- `extension.js` installs the RTK runtime and workspace hook automatically.
+- `src/core/hookManager.js` adds or removes Brevity's `PreToolUse` hook while
+  preserving other workspace hooks.
+- `src/core/hook.js` passes terminal command payloads to RTK and returns a valid
+  rewrite response to Copilot. RTK, not Brevity, decides which commands it can
+  translate.
+- `src/tools/rtk/runtime.js` downloads and verifies the RTK executable.
 
-## Add a tool
+Keep the path simple: do not add a second command allowlist, user settings,
+status UI, metrics, or tool/strategy registries. If RTK can rewrite a command,
+Brevity should let its response through; otherwise the original command runs.
 
-1. Create `src/tools/<tool-id>/index.js`.
-2. Export `id`, `name`, `strategies`, `prepare`, `status`, and
-   `uninstall`/cleanup methods when applicable.
-3. Register the tool in `src/core/toolRegistry.js` usage or in `extension.js`.
-4. Keep tool-specific binaries, licenses, checksums, environment variables,
-   and failures inside the tool directory.
-5. Add focused unit tests in `test/unit/`.
-
-## Add a strategy
-
-1. Create `src/strategies/<strategy-id>/README.md`.
-2. Define the strategy input, output, fail-open behavior, metrics, and
-   privacy boundary.
-3. Implement the core integration in `src/core/` or under the strategy folder.
-4. Bind one or more registered tools through an adapter.
-
-## RTK quick reference
-
-RTK is a command-output compression tool only. For RTK work, read only:
-
-- `src/tools/rtk/README.md`
-- `src/tools/rtk/runtime.js`
-- `src/tools/rtk/index.js`
-- `src/core/hook.js`
-- `src/core/policy.js`
-
-Do not treat RTK as the overall Brevity lifecycle. Enable, disable, retry,
-uninstall, status, rollout, and metrics commands belong to Brevity's core.
+Run `npm run lint`, `npm run test:unit`, and `npm test` when changing the hook
+or runtime.

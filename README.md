@@ -1,177 +1,29 @@
 # Brevity
 
-Brevity is a token-reduction platform for GitHub Copilot sessions inside Visual
-Studio Code. It combines reusable reduction strategies with replaceable tools,
-so future implementations can be added without changing the user-facing
-enable, disable, status, retry, or uninstall lifecycle.
+Brevity lets RTK shorten terminal output returned to GitHub Copilot in VS Code.
+It does not rewrite the text you type in chat. Before a terminal command runs,
+Brevity passes its Copilot hook data to RTK. RTK rewrites commands it supports
+and leaves the rest unchanged.
 
-## Current status
+## Use
 
-Brevity manages registered token-reduction tools, writes project integration
-hooks, and applies conservative command policies. RTK is currently the first
-registered command-output tool. It is under active development and is not yet
-published on the Visual Studio Code Marketplace.
+1. Install and enable Brevity in VS Code.
+2. Open a workspace and start GitHub Copilot Chat.
+3. Brevity installs RTK and its workspace hook automatically.
 
-## Installation and setup
-
-After installing Brevity:
-
-1. Open a folder or workspace in VS Code.
-2. Start or open a GitHub Copilot Chat session.
-3. Brevity prepares and verifies its registered tools automatically after VS Code starts.
-4. Brevity creates `.github/hooks/rtk-rewrite.json` only inside open
-   workspace folders.
-
-No terminal command or manual RTK installation is required.
-
-Check the lower-right status bar for:
-
-- `Brevity: Ready`
-- `Brevity: Setup needed`
-- `Brevity: No hook`
-- `Brevity: Off`
-
-Open **Command Palette** and run **Brevity: Show Status** for runtime integrity,
-hook registration, supported command families, and local aggregate metrics.
-Use **Brevity: Enable** to reinitialize all enabled tools.
-
-## Supported command scope
-
-Brevity initially compresses:
-
-- Measured Git status output through `git status`
-- Common npm, pnpm, and yarn test/run/build/list commands
-- Common cargo test/build/check/clippy/nextest commands
-- Common pytest, Maven, Gradle, .NET, Go, and PHPUnit test/build commands
-- Read-only Docker, Kubernetes, and cloud list/describe commands
-- Read-only filesystem inspection and safe HTTP metadata/read requests
-
-Unknown, shell-sensitive, and unmeasured Git commands pass through unchanged.
-Additional Git filters can be enabled individually with measured command
-overrides, such as `{"git diff": true}`.
-
-## Raw output
-
-Use `rtk bypass <command>` to run a command without compression and retain raw
-output. For example:
-
-```bash
-rtk bypass git status
-```
-
-The bypass is also useful if a filtered result appears incomplete.
-
-## Settings
-
-- `brevity.enabled` — enable or disable Brevity.
-- `brevity.killSwitch` — emergency disable that removes Brevity hooks.
-- `brevity.rolloutStage` — local rollout label: `preview`, `staged`, or
-  `general`.
-- `brevity.tools.commands.allowlist` — command families Brevity may handle.
-- `brevity.tools.commands.excludePatterns` — exact prefixes or regular expressions
-  beginning with `^` that must remain unchanged.
-- `brevity.allowBypass` — show and preserve raw-output bypass guidance.
-
-## Commands
-
-| Command | Purpose |
-| --- | --- |
-| Brevity: Show Status | Show tool and hook status |
-| Brevity: Enable | Enable Brevity and reinitialize tools |
-| Brevity: Emergency Disable | Immediately stop Brevity |
-| Brevity: Retry Tools | Prepare or reinitialize registered tools |
-| Brevity: Disable | Disable Brevity and remove its hooks |
-| Brevity: Uninstall | Remove hooks and managed tool data |
-
-## Privacy and licensing
-
-Brevity does not send command text, source content, file paths, environment
-variables, or hook payloads to Brevity telemetry. RTK tracking remains local
-to the user's machine.
-
-The initial runtime is RTK OSS, licensed under Apache-2.0. Full RTK includes
-separate license boundaries and is not selected. See
-[third-party notices](docs/third-party-notices.md).
-
-## Remote hosts
-
-The runtime is stored in each VS Code execution context. This means Remote
-SSH, Dev Containers, WSL, and local VS Code installations need the appropriate
-runtime visible in that context. Unsupported platforms pass commands through
-unchanged.
-
-## Troubleshooting
-
-See [Troubleshooting](docs/troubleshooting.md) for download, checksum, hook,
-Copilot, and raw-output recovery steps.
-
-Release and rollback procedures are documented in
-[Release policy](docs/release-policy.md).
-
-Additional guides:
-
-- [User guide](docs/user-guide.md)
-- [Administrator guide](docs/administrator-guide.md)
-- [Contributor guide](docs/contributor-guide.md)
-- [Tool and strategy development](docs/tool-development.md)
-- [Architecture contract](docs/architecture-contract.md)
+No commands or settings need to be configured. RTK decides which commands it
+can translate. To see the unshortened output for one command, use RTK's
+`rtk bypass <command>` form.
 
 ## Development
 
 ```bash
 npm install
-code .
-```
-
-Press `F5` to launch an Extension Development Host.
-
-```bash
 npm run lint
 npm run test:unit
 npm test
-npm run test:smoke
-npm run test:all
 ```
 
-See [Testing](docs/testing.md) for test layers and fixtures.
-
-To run the reproducible RTK benchmark fixtures:
-
-```bash
-npm run benchmark:rtk
-```
-
-This writes `benchmark-report.json` with raw and filtered character/token
-counts, exit-status preservation, task-critical detail checks, per-family
-thresholds, and an overall pass result. Set
-`BREVITY_BENCHMARK_REPORT=/path/to/report.json` to choose another output path.
-
-Maintainers can run `npm run benchmark:final` to exercise the repository's
-real Git, lint, unit-test, and VSIX packaging workload. Its
-`final-benchmark-report.json` omits command text and records only aggregate
-counts and anonymized failure categories.
-
-## Contributing
-
-Contributions and ideas are welcome while the project takes shape. Please
-focus changes on the extension's core goal: reducing unnecessary token usage
-without making AI-assisted development less useful.
-
-Before submitting a change, run:
-
-```bash
-npm run lint
-npm test
-```
-
-## Third-party notices
-
-RTK licensing and attribution details are recorded in
-[Third-party notices](docs/third-party-notices.md).
-
-RTK runtime download, cache, and failure behavior is documented in
-[RTK runtime management](docs/rtk-runtime.md).
-
-## License
-
-No license has been declared yet.
+The RTK runtime is downloaded from its GitHub release and checked against a
+pinned SHA-256 checksum before use. Runtime files are stored in VS Code's
+extension storage. Brevity stores no command text or hook payloads.

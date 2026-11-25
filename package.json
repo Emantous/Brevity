@@ -1,7 +1,7 @@
 {
   "name": "brevity",
   "displayName": "Brevity",
-  "description": "Automatically reduces token-heavy command output for GitHub Copilot sessions.",
+  "description": "Automatically reduces terminal output for GitHub Copilot.",
   "version": "0.0.1",
   "publisher": "EmantTools",
   "repository": {
@@ -16,96 +16,6 @@
   ],
   "activationEvents": ["onStartupFinished"],
   "main": "./extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "brevity.helloWorld",
-        "title": "Hello World"
-      },
-      {
-        "command": "brevity.status",
-        "title": "Brevity: Show Status"
-      },
-      {
-        "command": "brevity.enable",
-        "title": "Brevity: Enable"
-      },
-      {
-        "command": "brevity.emergencyDisable",
-        "title": "Brevity: Emergency Disable"
-      },
-      {
-        "command": "brevity.retry",
-        "title": "Brevity: Retry Tools"
-      },
-      {
-        "command": "brevity.disable",
-        "title": "Brevity: Disable"
-      },
-      {
-        "command": "brevity.uninstall",
-        "title": "Brevity: Uninstall"
-      },
-      {
-        "command": "brevity.metrics",
-        "title": "Brevity: Show Local Metrics"
-      },
-      {
-        "command": "brevity.clearMetrics",
-        "title": "Brevity: Clear Local Metrics"
-      }
-    ],
-    "configuration": {
-      "title": "Brevity",
-      "properties": {
-        "brevity.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically manage all enabled Brevity token-reduction tools."
-        },
-        "brevity.killSwitch": {
-          "type": "boolean",
-          "default": false,
-          "description": "Emergency kill switch that disables rewriting and removes the Brevity hook."
-        },
-        "brevity.rolloutStage": {
-          "type": "string",
-          "enum": ["preview", "staged", "general"],
-          "default": "general",
-          "description": "Local rollout stage label used for operational status and release checks."
-        },
-        "brevity.tools.commands.allowlist": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": [
-            "git", "npm", "pnpm", "yarn", "cargo",
-            "pytest", "mvn", "gradle", "dotnet", "go", "phpunit",
-            "docker", "kubectl", "aws", "az", "gcloud"
-            ,"ls", "find", "grep", "rg", "du", "df", "stat", "file", "pwd", "tree",
-            "curl", "wget"
-          ],
-          "description": "Command families eligible for command-output reduction tools."
-        },
-        "brevity.tools.commands.excludePatterns": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": [],
-          "description": "Exact prefixes or regular expressions beginning with ^ that Brevity must not rewrite."
-        },
-        "brevity.tools.commands.overrides": {
-          "type": "object",
-          "default": {},
-          "additionalProperties": { "type": "boolean" },
-          "description": "Per-command overrides such as {\"git diff\": true}; use only after measuring the command output."
-        },
-        "brevity.allowBypass": {
-          "type": "boolean",
-          "default": true,
-          "description": "Document and preserve raw-output bypass guidance for tools that support it."
-        }
-      }
-    }
-  },
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",

@@ -5,7 +5,6 @@ const assert = require('assert');
 const vscode = require('vscode');
 const {
 	resolveRtkAsset,
-	parseChecksums,
 	sha256,
 	safeFileName,
 } = require('../src/tools/rtk/runtime');
@@ -14,10 +13,8 @@ const {
 	buildHookEntry,
 	isBrevityEntry,
 } = require('../src/core/hookManager');
-const { isBrevityAllowedCommand } = require('../src/core/policy');
 const { sanitizedEnvironment } = require('../src/core/hook');
 const { PINNED_ARCHIVE_SHA256 } = require('../src/tools/rtk/runtime');
-const { formatStatus, countSupportedCommands } = require('../src/core/uxStatus');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const os = require('os');
@@ -40,9 +37,7 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(resolveRtkAsset('freebsd', 'x64'), null);
 	});
 
-	test('RTK checksums parse and hash consistently', () => {
-		const checksums = parseChecksums('5dc4110f886e9b47e9380d3028d75ec266666bc70747f5aaf78572d8d2a48d71  rtk-oss-x86_64-unknown-linux-musl.tar.gz');
-		assert.strictEqual(checksums.get('rtk-oss-x86_64-unknown-linux-musl.tar.gz'), '5dc4110f886e9b47e9380d3028d75ec266666bc70747f5aaf78572d8d2a48d71');
+	test('RTK archive hashes are calculated consistently', () => {
 		assert.strictEqual(sha256(Buffer.from('rtk')), '3dc0deea30053c57bcbb7c1ff189b8cd5668eea42faf9b1aff650d1a4a7eb0de');
 	});
 
@@ -57,7 +52,6 @@ suite('Extension Test Suite', () => {
 			'/opt/Brevity/rtk',
 			process.execPath,
 			'/opt/Brevity/src/core/hook.js',
-			'/opt/Brevity/policy.json',
 		);
 		assert.strictEqual(entry.cwd, '.');
 		assert.strictEqual(entry.timeoutSec, 5);
@@ -89,7 +83,6 @@ suite('Extension Test Suite', () => {
 			executablePath: executable,
 			nodeExecutablePath: process.execPath,
 			hookScriptPath: path.join(workspace, 'copilotHook.js'),
-			policyFilePath: path.join(workspace, 'policy.json'),
 		});
 
 		await manager.install();
@@ -126,7 +119,6 @@ suite('Extension Test Suite', () => {
 			executablePath: path.join(workspace, 'rtk'),
 			nodeExecutablePath: process.execPath,
 			hookScriptPath: path.join(workspace, 'copilotHook.js'),
-			policyFilePath: path.join(workspace, 'policy.json'),
 		});
 
 		await manager.install();
@@ -151,30 +143,11 @@ suite('Extension Test Suite', () => {
 			executablePath: path.join(workspace, 'rtk'),
 			nodeExecutablePath: process.execPath,
 			hookScriptPath: path.join(workspace, 'copilotHook.js'),
-			policyFilePath: path.join(workspace, 'policy.json'),
 		});
 
 		await assert.rejects(() => manager.install(), /Refusing symlinked Copilot hook path/);
 		assert.strictEqual(await fsPromises.readFile(targetPath, 'utf8'), JSON.stringify({ secret: 'do-not-copy' }));
 		await fsPromises.rm(workspace, { recursive: true, force: true });
-	});
-
-	test('Compression policy allows only conservative read and build commands', () => {
-		assert.strictEqual(isBrevityAllowedCommand('git status'), true);
-		assert.strictEqual(isBrevityAllowedCommand('git diff HEAD'), false);
-		assert.strictEqual(isBrevityAllowedCommand('git diff HEAD', {
-			commandOverrides: { 'git diff': true },
-		}), true);
-		assert.strictEqual(isBrevityAllowedCommand('npm test'), true);
-		assert.strictEqual(isBrevityAllowedCommand('cargo clippy'), true);
-		assert.strictEqual(isBrevityAllowedCommand('git rebase -i HEAD~2'), false);
-		assert.strictEqual(isBrevityAllowedCommand('git status && rm -rf /'), false);
-		assert.strictEqual(isBrevityAllowedCommand('curl https://example.com'), true);
-		assert.strictEqual(isBrevityAllowedCommand('curl -X POST https://example.com'), false);
-		assert.strictEqual(isBrevityAllowedCommand('rtk bypass git status'), false);
-		assert.strictEqual(isBrevityAllowedCommand('git status', {
-			excludePatterns: ['git status'],
-		}), false);
 	});
 
 	test('RTK downloads require HTTPS and use immutable release hashes', async () => {
@@ -197,21 +170,4 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(environment.ANTHROPIC_API_KEY, undefined);
 	});
 
-	test('UX status describes disabled, setup, missing hook, and ready states', () => {
-		assert.strictEqual(formatStatus({ enabled: false, runtimeReady: false }).text,
-			'$(circle-slash) Brevity: Off');
-		assert.strictEqual(formatStatus({ enabled: true, runtimeReady: false }).text,
-			'$(warning) Brevity: Setup needed');
-		assert.strictEqual(formatStatus({ enabled: true, runtimeReady: true, hookCount: 0 }).text,
-			'$(warning) Brevity: No hook');
-		assert.strictEqual(formatStatus({ enabled: true, runtimeReady: true, hookCount: 2 }).text,
-			'$(rocket) Brevity: Ready');
-	});
-
-	test('UX supported-command count does not expose command contents', () => {
-		assert.strictEqual(countSupportedCommands(['git']), 6);
-		assert.strictEqual(countSupportedCommands(['git', 'npm', 'cargo']), 20);
-		assert.strictEqual(countSupportedCommands(['pytest', 'mvn', 'gradle', 'dotnet', 'go', 'phpunit']), 17);
-		assert.strictEqual(countSupportedCommands([]), 0);
-	});
 });

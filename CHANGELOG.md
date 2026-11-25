@@ -7,7 +7,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 - Initial RTK OSS runtime integration
-- Automatic VS Code Copilot and Copilot CLI hook setup
-- Conservative command allowlist and raw-output bypass
-- Status, retry, disable, and managed-uninstall commands
-- Pinned integrity checks, security hardening, and testing coverage
+- Automatic VS Code Copilot hook setup and cleanup
+- RTK chooses which terminal commands it can rewrite
+- Pinned runtime integrity checks and fail-open hook behavior

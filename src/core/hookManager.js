@@ -1,5 +1,4 @@
-const fs = require('fs');
-const fsPromises = fs.promises;
+const fsPromises = require('fs').promises;
 const path = require('path');
 
 const HOOK_FILE_NAME = 'rtk-rewrite.json';
@@ -43,22 +42,18 @@ async function assertNoSymlinkPath(hookPath) {
 	}
 }
 
-function buildHookEntry(executablePath, nodeExecutablePath, hookScriptPath, policyFilePath, metricsFilePath) {
-	const bashExecutable = shellQuote(executablePath);
+function buildHookEntry(executablePath, nodeExecutablePath, hookScriptPath) {
+	const executable = shellQuote(executablePath);
+	const node = shellQuote(nodeExecutablePath);
+	const script = shellQuote(hookScriptPath);
 	const powershellExecutable = powershellQuote(executablePath);
-	const bashNode = shellQuote(nodeExecutablePath);
-	const bashHookScript = shellQuote(hookScriptPath);
 	const powershellNode = powershellQuote(nodeExecutablePath);
-	const powershellHookScript = powershellQuote(hookScriptPath);
-	const bashPolicy = shellQuote(policyFilePath);
-	const powershellPolicy = powershellQuote(policyFilePath);
-	const bashMetrics = shellQuote(metricsFilePath || '');
-	const powershellMetrics = powershellQuote(metricsFilePath || '');
+	const powershellScript = powershellQuote(hookScriptPath);
 
 	return {
 		type: 'command',
-		bash: `# ${BREVITY_MARKER}; if [ -x ${bashExecutable} ] && [ -x ${bashNode} ]; then ELECTRON_RUN_AS_NODE=1 exec ${bashNode} ${bashHookScript} ${bashExecutable} ${bashPolicy} ${bashMetrics}; fi`,
-		powershell: `# ${BREVITY_MARKER}; if (Test-Path -LiteralPath ${powershellExecutable}) { $env:ELECTRON_RUN_AS_NODE='1'; & ${powershellNode} ${powershellHookScript} ${powershellExecutable} ${powershellPolicy} ${powershellMetrics} }`,
+		bash: `# ${BREVITY_MARKER}; if [ -x ${executable} ] && [ -x ${node} ]; then ELECTRON_RUN_AS_NODE=1 exec ${node} ${script} ${executable}; fi`,
+		powershell: `# ${BREVITY_MARKER}; if (Test-Path -LiteralPath ${powershellExecutable}) { $env:ELECTRON_RUN_AS_NODE='1'; & ${powershellNode} ${powershellScript} ${powershellExecutable} }`,
 		cwd: '.',
 		timeoutSec: 5,
 	};
@@ -89,19 +84,13 @@ class CopilotHookManager {
 		executablePath,
 		nodeExecutablePath = process.execPath,
 		hookScriptPath,
-		policyFilePath,
-		metricsFilePath,
 		output = () => {},
-		platform = process.platform,
 	}) {
 		this.workspaceFolders = workspaceFolders || [];
 		this.executablePath = executablePath;
 		this.nodeExecutablePath = nodeExecutablePath;
 		this.hookScriptPath = hookScriptPath;
-		this.policyFilePath = policyFilePath;
-		this.metricsFilePath = metricsFilePath;
 		this.output = output;
-		this.platform = platform;
 	}
 
 	getHookPaths() {
@@ -114,23 +103,20 @@ class CopilotHookManager {
 	async readHookFile(hookPath) {
 		await assertNoSymlinkPath(hookPath);
 		try {
-			const text = await fsPromises.readFile(hookPath, 'utf8');
-			try {
-				return JSON.parse(text);
-			} catch (error) {
-				error.code = MALFORMED_HOOK_CODE;
-				throw error;
-			}
+			return JSON.parse(await fsPromises.readFile(hookPath, 'utf8'));
 		} catch (error) {
 			if (error.code === 'ENOENT') {
 				return null;
+			}
+			if (error instanceof SyntaxError) {
+				error.code = MALFORMED_HOOK_CODE;
 			}
 			if (error.code === MALFORMED_HOOK_CODE) {
 				throw new Error(`Cannot safely update Copilot hook ${hookPath}: invalid JSON`, {
 					cause: error,
 				});
 			}
-			throw new Error(`Cannot safely update Copilot hook ${hookPath}: ${error.message}`);
+			throw new Error(`Cannot safely read Copilot hook ${hookPath}: ${error.message}`);
 		}
 	}
 
@@ -152,11 +138,10 @@ class CopilotHookManager {
 		await this.backupHookFile(hookPath);
 
 		const temporaryPath = `${hookPath}.${process.pid}.${Date.now()}.tmp`;
-		const contents = `${JSON.stringify(config, null, 2)}\n`;
 		try {
 			const handle = await fsPromises.open(temporaryPath, 'wx', 0o600);
 			try {
-				await handle.writeFile(contents, { encoding: 'utf8' });
+				await handle.writeFile(`${JSON.stringify(config, null, 2)}\n`, 'utf8');
 				await handle.sync();
 			} finally {
 				await handle.close();
@@ -168,16 +153,6 @@ class CopilotHookManager {
 		}
 	}
 
-	async recoverMalformedHook(hookPath) {
-		const backupPath = `${hookPath}.malformed.bak`;
-		try {
-			await fsPromises.rename(hookPath, backupPath);
-		} catch (error) {
-			throw new Error(`Cannot recover malformed Copilot hook ${hookPath}: ${error.message}`);
-		}
-		this.output(`Backed up malformed Copilot hook: ${backupPath}`);
-	}
-
 	async install() {
 		const results = [];
 		for (const hookPath of this.getHookPaths()) {
@@ -186,14 +161,16 @@ class CopilotHookManager {
 				existing = await this.readHookFile(hookPath);
 			} catch (error) {
 				if (error.cause && error.cause.code === MALFORMED_HOOK_CODE) {
-					await this.recoverMalformedHook(hookPath);
+					const backupPath = `${hookPath}.malformed.bak`;
+					await fsPromises.rename(hookPath, backupPath);
+					this.output(`Backed up malformed Copilot hook: ${backupPath}`);
 					existing = null;
 				} else {
 					throw error;
 				}
 			}
-			const config = existing || { version: 1, hooks: {} };
 
+			const config = existing || { version: 1, hooks: {} };
 			if (!config.hooks || typeof config.hooks !== 'object') {
 				config.hooks = {};
 			}
@@ -202,14 +179,10 @@ class CopilotHookManager {
 			}
 
 			const unrelated = config.hooks.PreToolUse.filter((entry) => !isRtkEntry(entry));
-			config.hooks.PreToolUse = [buildHookEntry(
-				this.executablePath,
-				this.nodeExecutablePath,
-				this.hookScriptPath,
-				this.policyFilePath,
-				this.metricsFilePath,
-			), ...unrelated];
-
+			config.hooks.PreToolUse = [
+				buildHookEntry(this.executablePath, this.nodeExecutablePath, this.hookScriptPath),
+				...unrelated,
+			];
 			await this.writeHookFile(hookPath, config);
 			this.output(`Installed Brevity Copilot hook: ${hookPath}`);
 			results.push({ hookPath, installed: true });
@@ -221,12 +194,7 @@ class CopilotHookManager {
 		const results = [];
 		for (const hookPath of this.getHookPaths()) {
 			const existing = await this.readHookFile(hookPath);
-			if (!existing) {
-				results.push({ hookPath, removed: false });
-				continue;
-			}
-
-			if (!existing.hooks || !Array.isArray(existing.hooks.PreToolUse)) {
+			if (!existing || !Array.isArray(existing.hooks?.PreToolUse)) {
 				results.push({ hookPath, removed: false });
 				continue;
 			}
@@ -252,24 +220,6 @@ class CopilotHookManager {
 			results.push({ hookPath, removed: true });
 		}
 		return results;
-	}
-
-	async status() {
-		const statuses = [];
-		for (const hookPath of this.getHookPaths()) {
-			const existing = await this.readHookFile(hookPath);
-			const entries = existing && existing.hooks && Array.isArray(existing.hooks.PreToolUse)
-				? existing.hooks.PreToolUse
-				: [];
-			const brevity = entries.filter(isBrevityEntry).length;
-			statuses.push({
-				hookPath,
-				installed: brevity > 0,
-				brevityEntries: brevity,
-				entryCount: entries.length,
-			});
-		}
-		return statuses;
 	}
 }
 

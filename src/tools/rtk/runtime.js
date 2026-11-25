@@ -6,7 +6,6 @@ const os = require('os');
 const path = require('path');
 const tar = require('tar');
 const yauzl = require('yauzl');
-const { migrateRuntimeManifest } = require('../../core/migrations');
 
 const RTK_TAG = 'dev-1.3.0-rc.642';
 const RTK_BINARY_VERSION = '0.49.0';
@@ -21,13 +20,6 @@ const PINNED_ARCHIVE_SHA256 = {
 	'rtk-oss-x86_64-pc-windows-msvc.zip': 'ed66e10701a5d8e50b890fe28c43c7d0a2267d090b9579ab634b8a2ce1ea220c',
 	'rtk-oss-x86_64-unknown-linux-musl.tar.gz': '5dc4110f886e9b47e9380d3028d75ec266666bc70747f5aaf78572d8d2a48d71',
 };
-
-function isWslEnvironment(platform = process.platform, environment = process.env) {
-	return platform === 'linux' && (
-		typeof environment.WSL_INTEROP === 'string' ||
-		typeof environment.WSL_DISTRO_NAME === 'string'
-	);
-}
 
 function resolveRtkAsset(platform = process.platform, architecture = process.arch) {
 	const targets = {
@@ -74,17 +66,6 @@ function isTrustedDownloadRedirect(sourceUrl, redirectUrl) {
 		return redirect.hostname === 'release-assets.githubusercontent.com';
 	}
 	return false;
-}
-
-function parseChecksums(text) {
-	const checksums = new Map();
-	for (const line of text.split(/\r?\n/)) {
-		const match = line.match(/^([a-fA-F0-9]{64})\s+\*?(.+)$/);
-		if (match) {
-			checksums.set(match[2].trim(), match[1].toLowerCase());
-		}
-	}
-	return checksums;
 }
 
 function safeFileName(name) {
@@ -257,9 +238,18 @@ class RtkRuntimeManager {
 
 	async readManifest() {
 		try {
-			return migrateRuntimeManifest(JSON.parse(
+			const manifest = JSON.parse(
 				await fsPromises.readFile(path.join(this.rootDir, 'manifest.json'), 'utf8'),
-			));
+			);
+			if (
+				!manifest ||
+				typeof manifest !== 'object' ||
+				Array.isArray(manifest) ||
+				(manifest.schemaVersion && manifest.schemaVersion > 1)
+			) {
+				return null;
+			}
+			return { ...manifest, schemaVersion: 1 };
 		} catch {
 			return null;
 		}
@@ -377,8 +367,6 @@ module.exports = {
 	RTK_TAG,
 	RTK_BINARY_VERSION,
 	resolveRtkAsset,
-	isWslEnvironment,
-	parseChecksums,
 	sha256,
 	safeFileName,
 	PINNED_ARCHIVE_SHA256,
